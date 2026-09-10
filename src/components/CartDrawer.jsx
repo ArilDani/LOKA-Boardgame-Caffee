@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { X, Trash2, ShoppingBag, Plus, Minus } from 'lucide-react'
+import { X, Trash2, ShoppingBag, Plus, Minus, Utensils, Clock, Dices } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { formatPrice } from '../data/menuData'
 import { useNavigate } from 'react-router-dom'
@@ -22,6 +22,15 @@ export default function CartDrawer() {
   const handleCheckout = () => {
     closeCart()
     navigate('/checkout')
+  }
+
+  const renderVisual = (item) => {
+    if (item.image) {
+      return <img src={item.image} alt={item.name} className="cart-item__image" />
+    }
+    if (item.icon === 'Clock') return <Clock size={24} className="cart-item__icon" />
+    if (item.icon === 'Dices') return <Dices size={24} className="cart-item__icon" />
+    return <Utensils size={24} className="cart-item__icon" />
   }
 
   return (
@@ -50,7 +59,7 @@ export default function CartDrawer() {
         {/* Content */}
         {items.length === 0 ? (
           <div className="cart-drawer__empty">
-            <div className="cart-drawer__empty-icon">🛒</div>
+            <div className="cart-drawer__empty-icon"><ShoppingBag size={48} className="cart-empty-icon" /></div>
             <h4>Keranjang kosong</h4>
             <p>Tambahkan menu favorit kamu!</p>
             <button className="btn btn-primary" onClick={closeCart}>Lihat Menu</button>
@@ -61,7 +70,7 @@ export default function CartDrawer() {
             <ul className="cart-items">
               {items.map(item => (
                 <li key={item.id} className="cart-item animate-fade-in">
-                  <div className="cart-item__emoji">{item.emoji || '🍽️'}</div>
+                  <div className="cart-item__visual">{renderVisual(item)}</div>
                   <div className="cart-item__info">
                     <p className="cart-item__name">{item.name}</p>
                     <p className="cart-item__price">{formatPrice(item.price)}</p>

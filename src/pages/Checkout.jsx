@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useCart } from '../context/CartContext'
 import { formatPrice } from '../data/menuData'
-import { CheckCircle2, ChevronRight, CreditCard, Banknote, QrCode, ArrowLeft } from 'lucide-react'
+import { CheckCircle2, ChevronRight, CreditCard, Banknote, QrCode, ArrowLeft, ShoppingBag, ClipboardList, Clock, Utensils, Dices } from 'lucide-react'
 import './Checkout.css'
 
 const PAYMENT_METHODS = [
@@ -53,7 +53,7 @@ export default function Checkout() {
     return (
       <div className="checkout-empty">
         <div className="container">
-          <p style={{ fontSize: '3rem' }}>🛒</p>
+          <ShoppingBag size={48} style={{ color: 'var(--clr-text-dim)', marginBottom: '1rem' }} />
           <h2>Keranjang Kosong</h2>
           <p>Tambahkan menu terlebih dahulu sebelum checkout.</p>
           <button className="btn btn-primary" onClick={() => navigate('/menu')}>Lihat Menu</button>
@@ -145,7 +145,12 @@ export default function Checkout() {
               <ul className="checkout-summary__list">
                 {items.map(item => (
                   <li key={item.id} className="checkout-summary__item">
-                    <span>{item.emoji} {item.name}</span>
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} style={{ width: 16, height: 16, borderRadius: 2, objectFit: 'cover' }} />
+                      ) : item.icon === 'Clock' ? <Clock size={16} /> : item.icon === 'Dices' ? <Dices size={16} /> : <Utensils size={16} />}
+                      {item.name}
+                    </span>
                     <span className="checkout-summary__item-detail">
                       x{item.qty} · {formatPrice(item.price * item.qty)}
                     </span>
@@ -177,7 +182,12 @@ export default function Checkout() {
             <div className="confirm-items">
               {items.map(item => (
                 <div key={item.id} className="confirm-item">
-                  <span>{item.emoji} {item.name} <em>x{item.qty}</em></span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} style={{ width: 16, height: 16, borderRadius: 2, objectFit: 'cover' }} />
+                    ) : item.icon === 'Clock' ? <Clock size={16} /> : item.icon === 'Dices' ? <Dices size={16} /> : <Utensils size={16} />}
+                    {item.name} <em>x{item.qty}</em>
+                  </span>
                   <span>{formatPrice(item.price * item.qty)}</span>
                 </div>
               ))}
@@ -200,7 +210,7 @@ export default function Checkout() {
         {/* ─── STEP 3: SUCCESS ─── */}
         {step === 3 && (
           <div className="checkout-success">
-            <div className="success-icon">✅</div>
+            <div className="success-icon"><CheckCircle2 size={48} color="var(--clr-primary)" /></div>
             <h2>Pesanan <span className="gradient-text">Diterima!</span></h2>
             <p>Terima kasih, <strong>{form.name}</strong>! Pesananmu sedang diproses oleh tim Loka.</p>
             <div className="success-order-id glass-card">
@@ -208,9 +218,9 @@ export default function Checkout() {
               <p className="success-order-number">{orderId}</p>
             </div>
             <div className="success-info glass-card">
-              <p>📋 Pesanan dikirim ke <strong>Meja {form.table}</strong></p>
-              <p>💳 Pembayaran via <strong>{PAYMENT_METHODS.find(m => m.id === payment)?.label}</strong></p>
-              <p>⏱️ Estimasi waktu: <strong>10–15 menit</strong></p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><ClipboardList size={16} /> Pesanan dikirim ke <strong>Meja {form.table}</strong></p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CreditCard size={16} /> Pembayaran via <strong>{PAYMENT_METHODS.find(m => m.id === payment)?.label}</strong></p>
+              <p style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><Clock size={16} /> Estimasi waktu: <strong>10–15 menit</strong></p>
             </div>
             <div className="success-actions">
               <button className="btn btn-secondary" onClick={() => navigate('/menu')}>Pesan Lagi</button>

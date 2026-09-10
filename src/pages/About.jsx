@@ -1,13 +1,13 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Clock, Phone, Instagram, Users, Heart, Dice6 } from 'lucide-react'
+import { MapPin, Clock, Phone, Instagram, Users, Heart, Dice6, Dices, Coffee, Store, UtensilsCrossed } from 'lucide-react'
 import './About.css'
 
 const TEAM_VALUES = [
-  { icon: '🎲', title: 'Fun First', desc: 'Kami percaya bermain game adalah cara terbaik untuk mempererat hubungan.' },
-  { icon: '☕', title: 'Quality Drinks', desc: 'Setiap minuman dibuat dengan bahan segar pilihan oleh barista berpengalaman.' },
-  { icon: '🏡', title: 'Cozy Vibes', desc: 'Suasana hangat dan nyaman yang bikin kamu betah berlama-lama.' },
-  { icon: '💚', title: 'Community', desc: 'Tempat berkumpul yang inklusif untuk semua kalangan pecinta boardgame.' },
+  { icon: <Dices size={32} />, title: 'Fun First', desc: 'Kami percaya bermain game adalah cara terbaik untuk mempererat hubungan.' },
+  { icon: <Coffee size={32} />, title: 'Quality Drinks', desc: 'Setiap minuman dibuat dengan bahan segar pilihan oleh barista berpengalaman.' },
+  { icon: <Store size={32} />, title: 'Cozy Vibes', desc: 'Suasana hangat dan nyaman yang bikin kamu betah berlama-lama.' },
+  { icon: <Heart size={32} />, title: 'Community', desc: 'Tempat berkumpul yang inklusif untuk semua kalangan pecinta boardgame.' },
 ]
 
 export default function About() {
@@ -76,19 +76,19 @@ export default function About() {
           <div className="about-story__visual reveal delay-2">
             <div className="about-visual-grid">
               <div className="about-visual-card about-visual-card--lg">
-                <span className="about-visual-emoji">🎲</span>
+                <span className="about-visual-icon"><Dices size={48} /></span>
                 <p>Boardgame Library</p>
               </div>
               <div className="about-visual-card">
-                <span className="about-visual-emoji">☕</span>
+                <span className="about-visual-icon"><Coffee size={48} /></span>
                 <p>Kopi Segar</p>
               </div>
               <div className="about-visual-card">
-                <span className="about-visual-emoji">🍜</span>
+                <span className="about-visual-icon"><UtensilsCrossed size={48} /></span>
                 <p>Menu Lezat</p>
               </div>
               <div className="about-visual-card about-visual-card--wide">
-                <span className="about-visual-emoji">🏡</span>
+                <span className="about-visual-icon"><Store size={48} /></span>
                 <p>Suasana Cozy</p>
               </div>
             </div>
@@ -167,7 +167,7 @@ export default function About() {
 
           <div className="about-info__cta reveal delay-2">
             <div className="about-cta-box">
-              <div className="about-cta-icon">🎲</div>
+              <div className="about-cta-icon"><Dices size={64} color="var(--clr-primary)" /></div>
               <h3>Siap Bermain?</h3>
               <p>Kunjungi Loka sekarang dan temukan pengalaman boardgame yang tak terlupakan bersama orang-orang tersayang.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

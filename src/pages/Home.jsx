@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight, Dice6, Coffee, UtensilsCrossed, Star,
-  Clock, Users, Gamepad2, Sparkles, ChevronDown
+  Clock, Users, Gamepad2, Sparkles, ChevronDown, Store, Dices, Target, Trophy
 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
 import { FOOD_ITEMS, DRINK_COFFEE, PLAY_PACKAGES, formatPrice } from '../data/menuData'
@@ -33,22 +33,22 @@ const STATS = [
 
 const FEATURES = [
   {
-    icon: '🎲',
+    icon: <Dices size={32} />,
     title: '200+ Boardgame',
     desc: 'Koleksi lengkap dari game ringan hingga strategi berat untuk semua level pemain.',
   },
   {
-    icon: '🍜',
+    icon: <UtensilsCrossed size={32} />,
     title: 'Menu Lezat',
     desc: 'Makanan dan minuman khas Loka yang menggugah selera, disiapkan segar setiap hari.',
   },
   {
-    icon: '☕',
+    icon: <Coffee size={32} />,
     title: 'Kopi Signature',
     desc: 'Lokachino dan berbagai minuman signature yang bikin sesi game makin seru.',
   },
   {
-    icon: '🏡',
+    icon: <Store size={32} />,
     title: 'Suasana Nyaman',
     desc: 'Ruangan cozy dengan AC, lighting hangat, dan meja game yang luas.',
   },
@@ -78,10 +78,10 @@ export default function Home() {
         <div className="hero__bg" ref={heroRef}>
           <div className="hero__gradient" />
           {/* Floating dice decorations */}
-          <div className="hero__dice hero__dice--1">🎲</div>
-          <div className="hero__dice hero__dice--2">🃏</div>
-          <div className="hero__dice hero__dice--3">♟️</div>
-          <div className="hero__dice hero__dice--4">🎯</div>
+          <div className="hero__dice hero__dice--1"><Dices size={32} /></div>
+          <div className="hero__dice hero__dice--2"><Trophy size={32} /></div>
+          <div className="hero__dice hero__dice--3"><Dice6 size={32} /></div>
+          <div className="hero__dice hero__dice--4"><Target size={32} /></div>
         </div>
 
         <div className="container hero__content">
@@ -164,7 +164,9 @@ export default function Home() {
           <div className="menu-preview-grid">
             {FEATURED_FOOD.map((item, i) => (
               <div key={item.id} className={`menu-preview-card glass-card reveal delay-${i + 1}`}>
-                <div className="menu-preview-card__emoji">{item.emoji}</div>
+                <div className="menu-preview-card__visual">
+                  <img src={item.image} alt={item.name} className="menu-preview-card__image" />
+                </div>
                 {item.tag && <span className="menu-preview-card__tag">{item.tag}</span>}
                 <div className="menu-preview-card__body">
                   <h4>{item.name}</h4>
@@ -198,7 +200,9 @@ export default function Home() {
             <ul className="home-coffee__list">
               {FEATURED_DRINK.map(d => (
                 <li key={d.id} className="home-coffee__list-item">
-                  <span className="home-coffee__list-emoji">{d.emoji}</span>
+                  <div className="home-coffee__list-visual">
+                    <img src={d.image} alt={d.name} className="home-coffee__list-image" />
+                  </div>
                   <div>
                     <p className="home-coffee__list-name">{d.name}</p>
                     <p className="home-coffee__list-price">{formatPrice(d.price)}</p>
@@ -213,7 +217,7 @@ export default function Home() {
           </div>
           <div className="home-coffee__visual reveal delay-2">
             <div className="coffee-visual-box">
-              <div className="coffee-visual-emoji">☕</div>
+              <div className="coffee-visual-icon"><Coffee size={64} color="var(--clr-primary)" /></div>
               <div className="coffee-visual-rings" />
               <div className="coffee-visual-glow" />
             </div>
@@ -232,7 +236,9 @@ export default function Home() {
             {PLAY_PACKAGES.map((pkg, i) => (
               <div key={pkg.id} className={`play-package-card reveal delay-${i + 1} ${pkg.tag ? 'play-package-card--featured' : ''}`}>
                 {pkg.tag && <div className="play-package-card__ribbon">{pkg.tag}</div>}
-                <div className="play-package-card__icon">{pkg.emoji}</div>
+                <div className="play-package-card__icon">
+                  {pkg.icon === 'Clock' ? <Clock size={48} /> : <Dices size={48} />}
+                </div>
                 <h3>{pkg.name}</h3>
                 <div className="play-package-card__price">
                   <span className="play-package-card__amount">{formatPrice(pkg.price)}</span>

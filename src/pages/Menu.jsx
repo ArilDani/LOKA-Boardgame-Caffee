@@ -3,15 +3,15 @@ import { useCart } from '../context/CartContext'
 import {
   FOOD_ITEMS, DRINK_NON_COFFEE, DRINK_COFFEE, PLAY_PACKAGES, formatPrice
 } from '../data/menuData'
-import { ShoppingCart, Search, Filter } from 'lucide-react'
+import { ShoppingCart, Search, Filter, Utensils, Coffee, CupSoda, Dices, Clock } from 'lucide-react'
 import './Menu.css'
 
 const TABS = [
-  { id: 'all',       label: '🍽️ Semua' },
-  { id: 'food',      label: '🍜 Makanan' },
-  { id: 'non-coffee',label: '🥤 Non-Coffee' },
-  { id: 'coffee',    label: '☕ Coffee & Signature' },
-  { id: 'play',      label: '🎲 Paket Main' },
+  { id: 'all',       label: 'Semua', icon: <Utensils size={16} /> },
+  { id: 'food',      label: 'Makanan', icon: <Utensils size={16} /> },
+  { id: 'non-coffee',label: 'Non-Coffee', icon: <CupSoda size={16} /> },
+  { id: 'coffee',    label: 'Coffee & Signature', icon: <Coffee size={16} /> },
+  { id: 'play',      label: 'Paket Main', icon: <Dices size={16} /> },
 ]
 
 const ALL = [
@@ -31,10 +31,19 @@ function ItemCard({ item }) {
     setTimeout(() => setAdded(false), 1200)
   }
 
+  const renderVisual = () => {
+    if (item.image) {
+      return <img src={item.image} alt={item.name} className="item-card__image" />
+    }
+    if (item.icon === 'Clock') return <Clock size={48} className="item-card__icon" />
+    if (item.icon === 'Dices') return <Dices size={48} className="item-card__icon" />
+    return <Utensils size={48} className="item-card__icon" />
+  }
+
   return (
     <div className="item-card glass-card">
-      <div className="item-card__emoji-wrap">
-        <div className="item-card__emoji">{item.emoji || '🍽️'}</div>
+      <div className="item-card__visual-wrap">
+        {renderVisual()}
         {item.tag && <span className="item-card__tag">{item.tag}</span>}
       </div>
       <div className="item-card__body">
@@ -107,7 +116,7 @@ export default function Menu() {
               className={`menu-tab ${activeTab === t.id ? 'menu-tab--active' : ''}`}
               onClick={() => setActiveTab(t.id)}
             >
-              {t.label}
+              {t.icon} <span>{t.label}</span>
             </button>
           ))}
         </div>

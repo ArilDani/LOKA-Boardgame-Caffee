@@ -2,6 +2,27 @@
 // LOKA BOARDGAME CAFE — MENU DATA
 // ============================================
 
+import imgBakso from '../assets/img/Bakso ala loka.jpg';
+import imgNasiGoreng from '../assets/img/Nasi Goreng Loka.jpg';
+import imgMixPlatter from '../assets/img/Mix Platter.jpg';
+import imgSeblak from '../assets/img/Seblak ala loka.jpg';
+import imgMieNyemek from '../assets/img/Mie Nyemek.jpg';
+import imgPisang from '../assets/img/Pisang Goreng Sambal.jpg';
+import imgMieInstan from '../assets/img/Mie Instan ala loka.jpg';
+
+import imgJuiceAlpukat from '../assets/img/Juice Alpukat.jpg';
+import imgLokacitrus from '../assets/img/Lokalcitrus.jpg';
+import imgLokamilk from '../assets/img/Lokamilk.jpg';
+import imgLokaOrange from '../assets/img/Lokaorange.jpg';
+import imgAirMineral from '../assets/img/Air Mineral.jpg';
+
+import imgLokachino from '../assets/img/Lokachino.jpg';
+import imgMangoLokachino from '../assets/img/Manggo Lokachino.jpg';
+import imgBerryLokachino from '../assets/img/Berry Lokachino.jpg';
+import imgOrangeLokachino from '../assets/img/Orangecino.jpg';
+import imgFrenchPress from '../assets/img/French Press.jpg';
+import imgLokaV60 from '../assets/img/Loka V60.jpg';
+
 export const FOOD_ITEMS = [
   {
     id: 'f1',
@@ -10,7 +31,7 @@ export const FOOD_ITEMS = [
     category: 'food',
     description: 'Bakso sapi premium dengan kuah kaldu spesial, mie, tahu, dan topping pilihan khas Loka.',
     tag: 'Best Seller',
-    emoji: '🍜',
+    image: imgBakso,
   },
   {
     id: 'f2',
@@ -19,7 +40,7 @@ export const FOOD_ITEMS = [
     category: 'food',
     description: 'Nasi goreng special recipe khas Loka dengan telur ceplok, acar, dan kerupuk renyah.',
     tag: "Chef's Pick",
-    emoji: '🍳',
+    image: imgNasiGoreng,
   },
   {
     id: 'f3',
@@ -28,7 +49,7 @@ export const FOOD_ITEMS = [
     category: 'food',
     description: 'Kombinasi berbagai camilan gorengan pilihan: tahu, tempe, pisang, dan lainnya.',
     tag: 'Sharing',
-    emoji: '🧆',
+    image: imgMixPlatter,
   },
   {
     id: 'f4',
@@ -37,7 +58,7 @@ export const FOOD_ITEMS = [
     category: 'food',
     description: 'Seblak khas Bandung dengan level pedas pilihan, kerupuk kenyal, telur, dan topping sosis.',
     tag: 'Spicy 🌶',
-    emoji: '🌶️',
+    image: imgSeblak,
   },
   {
     id: 'f5',
@@ -45,7 +66,7 @@ export const FOOD_ITEMS = [
     price: 25000,
     category: 'food',
     description: 'Mie kuah kental semi-kering dengan bumbu rempah yang kaya, bakso, dan sayuran segar.',
-    emoji: '🍝',
+    image: imgMieNyemek,
   },
   {
     id: 'f6',
@@ -53,7 +74,7 @@ export const FOOD_ITEMS = [
     price: 25000,
     category: 'food',
     description: 'Pisang kepok goreng crispy dengan sambal matah khas Loka yang segar dan pedas.',
-    emoji: '🍌',
+    image: imgPisang,
   },
   {
     id: 'f7',
@@ -62,7 +83,7 @@ export const FOOD_ITEMS = [
     category: 'food',
     description: 'Mie instan dimasak ala Loka dengan tambahan telur, sayur, dan sambal spesial.',
     tag: 'Hemat',
-    emoji: '🍜',
+    image: imgMieInstan,
   },
 ];
 
@@ -74,7 +95,7 @@ export const DRINK_NON_COFFEE = [
     category: 'non-coffee',
     description: 'Alpukat segar blended dengan susu, cokelat meses, dan sedikit kental manis.',
     tag: 'Favorit',
-    emoji: '🥑',
+    image: imgJuiceAlpukat,
   },
   {
     id: 'd2',
@@ -82,7 +103,7 @@ export const DRINK_NON_COFFEE = [
     price: 15000,
     category: 'non-coffee',
     description: 'Minuman segar perpaduan lemon, jeruk nipis, dan soda dengan sejumput mint.',
-    emoji: '🍋',
+    image: imgLokacitrus,
   },
   {
     id: 'd3',
@@ -90,7 +111,7 @@ export const DRINK_NON_COFFEE = [
     price: 18000,
     category: 'non-coffee',
     description: 'Fresh milk khas Loka dengan pilihan rasa original, cokelat, atau strawberry.',
-    emoji: '🥛',
+    image: imgLokamilk,
   },
   {
     id: 'd4',
@@ -98,7 +119,7 @@ export const DRINK_NON_COFFEE = [
     price: 20000,
     category: 'non-coffee',
     description: 'Jeruk peras segar dicampur madu dan soda, menyegarkan selama main game.',
-    emoji: '🍊',
+    image: imgLokaOrange,
   },
   {
     id: 'd5',
@@ -106,7 +127,7 @@ export const DRINK_NON_COFFEE = [
     price: 7000,
     category: 'non-coffee',
     description: 'Air mineral dingin segar.',
-    emoji: '💧',
+    image: imgAirMineral,
   },
 ];
 
@@ -118,7 +139,7 @@ export const DRINK_COFFEE = [
     category: 'coffee',
     description: 'Cappuccino khas Loka dengan crema espresso sempurna dan latte art istimewa.',
     tag: 'Signature',
-    emoji: '☕',
+    image: imgLokachino,
   },
   {
     id: 'c2',
@@ -126,7 +147,7 @@ export const DRINK_COFFEE = [
     price: 22000,
     category: 'coffee',
     description: 'Perpaduan unik espresso, susu, dan mango segar — manis dengan sentuhan kopi.',
-    emoji: '🥭',
+    image: imgMangoLokachino,
   },
   {
     id: 'c3',
@@ -134,7 +155,7 @@ export const DRINK_COFFEE = [
     price: 22000,
     category: 'coffee',
     description: 'Espresso segar dengan berry mix puree, susu, dan foam lembut nan menawan.',
-    emoji: '🫐',
+    image: imgBerryLokachino,
   },
   {
     id: 'c4',
@@ -142,7 +163,7 @@ export const DRINK_COFFEE = [
     price: 25000,
     category: 'coffee',
     description: 'Espresso dengan jeruk segar, soda, dan twist oranye yang refreshing.',
-    emoji: '🍊',
+    image: imgOrangeLokachino,
   },
   {
     id: 'c5',
@@ -150,7 +171,7 @@ export const DRINK_COFFEE = [
     price: 25000,
     category: 'coffee',
     description: 'Kopi French Press dengan biji kopi pilihan yang diseduh dengan sempurna.',
-    emoji: '☕',
+    image: imgFrenchPress,
   },
   {
     id: 'c6',
@@ -159,7 +180,7 @@ export const DRINK_COFFEE = [
     category: 'coffee',
     description: 'Pour-over V60 manual brew dengan single origin beans, bright & complex flavor.',
     tag: 'Premium',
-    emoji: '☕',
+    image: imgLokaV60,
   },
 ];
 
@@ -170,7 +191,7 @@ export const PLAY_PACKAGES = [
     price: 10000,
     category: 'play',
     description: 'Akses main semua koleksi boardgame selama 1 jam. Cocok untuk sesi singkat bersama teman.',
-    emoji: '⏱️',
+    icon: 'Clock',
     unit: '/ jam',
   },
   {
@@ -180,7 +201,7 @@ export const PLAY_PACKAGES = [
     category: 'play',
     description: 'Bermain sepuasnya seharian penuh! Akses ke 200+ judul boardgame mulai buka hingga tutup.',
     tag: 'Best Value',
-    emoji: '🎲',
+    icon: 'Dices',
     unit: '/ orang',
   },
 ];
