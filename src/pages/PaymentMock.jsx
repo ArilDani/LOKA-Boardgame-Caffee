@@ -1,11 +1,11 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { CheckCircle2, Clock, Banknote, QrCode, CreditCard, ArrowLeft } from "lucide-react";
 import { formatPrice } from "../data/menuData";
 import "./PaymentMock.css";
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 export default function PaymentMock() {
   const [params] = useSearchParams();

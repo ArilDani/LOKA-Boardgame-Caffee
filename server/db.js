@@ -1,10 +1,16 @@
-﻿const Database = require("better-sqlite3");
+const Database = require("better-sqlite3");
 const path = require("path");
 
-const db = new Database(path.join(__dirname, "loka.db"));
+const isVercel = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const dbDir = isVercel ? "/tmp" : __dirname;
+const dbPath = path.join(dbDir, "loka.db");
 
-// Enable WAL mode for better performance
-db.pragma("journal_mode = WAL");
+const db = new Database(dbPath);
+
+// Enable WAL mode for better performance (local only)
+if (!isVercel) {
+  db.pragma("journal_mode = WAL");
+}
 db.pragma("foreign_keys = ON");
 
 // ============ SCHEMA ============

@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart }  from "../context/CartContext";
 import { useAuth }  from "../context/AuthContext";
@@ -12,7 +12,7 @@ const PAYMENT_METHODS = [
   { id: "qris",     label: "QRIS",             icon: <QrCode size={20}/>, desc: "Scan QR dengan semua e-wallet" },
 ];
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function genOrderId() {
   return "LKA-" + Math.floor(Date.now() / 1000).toString().slice(-6).toUpperCase();

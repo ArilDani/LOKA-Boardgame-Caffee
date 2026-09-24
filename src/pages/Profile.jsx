@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { User, Star, Trophy, CreditCard, Clock, ShoppingBag, LogOut, ChevronRight, Edit2, Save, X } from "lucide-react";
@@ -11,7 +11,7 @@ const MEMBERSHIP_CONFIG = {
   Platinum: { color: "#e5e4e2", next: null,       needed: null, icon: "💎" },
 };
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 export default function Profile() {
   const { user, logout, authFetch, refreshUser } = useAuth();

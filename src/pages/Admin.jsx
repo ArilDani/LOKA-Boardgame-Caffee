@@ -9,7 +9,7 @@ import {
 import { formatPrice } from "../data/menuData";
 import "./Admin.css";
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 const CATS = ["food", "non-coffee", "coffee", "play"];
 
 // ── Mini chart bars ───────────────────────────────────

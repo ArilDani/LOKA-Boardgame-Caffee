@@ -1,11 +1,11 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Trophy, Play, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 import { BOARDGAMES } from "../data/menuData";
 import "./GameScore.css";
 
-const API = "http://localhost:3001/api";
+const API = import.meta.env.VITE_API_URL || "/api";
 
 function newPlayer(n) { return { name: `Pemain ${n}`, score: 0 }; }
 

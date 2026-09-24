@@ -1,4 +1,4 @@
-﻿require("dotenv").config();
+require("dotenv").config();
 const express  = require("express");
 const cors     = require("cors");
 const jwt      = require("jsonwebtoken");
@@ -314,4 +314,8 @@ app.post("/api/payment/confirm/:orderId", auth, (req, res) => {
 // ─── Health ──────────────────────────────────────────────
 app.get("/api/health", (_, res) => res.json({ status: "ok", time: new Date().toISOString() }));
 
-app.listen(PORT, () => console.log(`🎲 Loka Server running on http://localhost:${PORT}`));
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => console.log(`🎲 Loka Server running on http://localhost:${PORT}`));
+}
+
+module.exports = app;
