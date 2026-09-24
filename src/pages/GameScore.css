@@ -1,0 +1,95 @@
+﻿/* ============ GAME SCORE PAGE ============ */
+.gamescore-page { min-height: 80vh; padding-block: var(--space-2xl) var(--space-3xl); position: relative; }
+.gamescore-bg { position: fixed; inset: 0; background: radial-gradient(ellipse 55% 50% at 60% 30%, rgba(45,106,79,0.12) 0%, transparent 60%), var(--clr-bg); z-index: 0; pointer-events: none; }
+.gamescore-inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-xl); }
+.gamescore-header { display: flex; flex-direction: column; gap: var(--space-sm); }
+.gamescore-tabs { display: flex; gap: var(--space-sm); }
+
+.gamescore-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.gamescore-setup { padding: var(--space-xl); display: flex; flex-direction: column; gap: var(--space-lg); position: sticky; top: calc(var(--nav-h) + var(--space-md)); }
+.gamescore-setup h4 { font-size: 1rem; }
+
+.gs-players { display: flex; flex-direction: column; gap: var(--space-sm); }
+.gs-player-row { display: flex; align-items: center; gap: var(--space-sm); }
+.gs-player-avatar {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: rgba(200,150,62,0.15); color: var(--clr-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; font-weight: 700; flex-shrink: 0;
+}
+.gs-player-input { flex: 1; }
+.gs-player-remove { color: var(--clr-text-dim); padding: 4px; transition: color var(--transition-fast); }
+.gs-player-remove:hover:not(:disabled) { color: #f87171; }
+.gs-player-remove:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* Scoreboard */
+.gamescore-board { display: flex; flex-direction: column; gap: var(--space-md); }
+.gsboard-header { overflow: hidden; }
+.gsboard-row {
+  display: flex;
+  border-bottom: 1px solid var(--clr-border);
+  transition: background var(--transition-fast);
+}
+.gsboard-row:last-child { border-bottom: none; }
+.gsboard-row--header { background: rgba(200,150,62,0.06); }
+.gsboard-row--active { background: rgba(45,106,79,0.08); }
+.gsboard-row--total  { background: rgba(200,150,62,0.04); }
+.gsboard-cell {
+  flex: 1; padding: 10px 12px; font-size: 0.85rem;
+  display: flex; align-items: center;
+}
+.gsboard-cell--round { max-width: 90px; color: var(--clr-text-muted); font-size: 0.78rem; }
+.gsboard-cell--player { font-weight: 600; color: var(--clr-text); gap: 8px; }
+.gsboard-cell--score  { justify-content: center; }
+.gsboard-cell--total  { font-weight: 700; color: var(--clr-text); font-size: 1rem; justify-content: center; font-family: var(--font-display); }
+.gsboard-cell--winner { color: var(--clr-primary); }
+.gsboard-player-num { width: 20px; height: 20px; border-radius: 50%; background: rgba(200,150,62,0.15); color: var(--clr-primary); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; flex-shrink: 0; }
+.gs-score-input {
+  width: 70px; text-align: center; padding: 6px;
+  background: var(--clr-bg-2); border: 1px solid var(--clr-primary);
+  border-radius: var(--radius-sm); color: var(--clr-text); font-size: 0.9rem;
+  outline: none;
+}
+.gs-score-display { font-size: 1rem; font-weight: 600; color: var(--clr-text); }
+.winner-crown { margin-left: 4px; }
+
+.gsboard-actions { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.gs-saved-msg { padding: 10px 16px; border-radius: var(--radius-md); font-size: 0.85rem; }
+.gs-saved-msg.success { background: rgba(82,183,136,0.1); border: 1px solid rgba(82,183,136,0.3); color: var(--clr-accent-2); }
+.gs-saved-msg.error   { background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3); color: #f87171; }
+.gs-winner-banner {
+  display: flex; align-items: center; gap: var(--space-md); padding: var(--space-lg);
+  border-color: rgba(255,215,0,0.3); background: rgba(255,215,0,0.04);
+  font-size: 0.9rem;
+}
+.gs-winner-banner strong { color: var(--clr-primary); }
+
+/* History */
+.gs-history { display: flex; flex-direction: column; gap: var(--space-md); }
+.gs-history-card { padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-md); }
+.gs-history-card__header { display: flex; justify-content: space-between; align-items: flex-start; }
+.gs-history-card__name { font-size: 0.95rem; font-weight: 700; color: var(--clr-text); }
+.gs-history-card__game { font-size: 0.78rem; color: var(--clr-text-muted); }
+.gs-history-winner { font-size: 0.82rem; color: var(--clr-primary); font-weight: 600; }
+.gs-history-scores { display: flex; gap: var(--space-sm); flex-wrap: wrap; }
+.gs-score-chip {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 8px 14px; border-radius: var(--radius-md);
+  background: var(--clr-surface); border: 1px solid var(--clr-border);
+  font-size: 0.82rem; min-width: 80px;
+}
+.gs-score-chip span { color: var(--clr-text-muted); }
+.gs-score-chip strong { color: var(--clr-text); font-size: 1.1rem; font-family: var(--font-display); }
+.gs-score-chip--winner { border-color: rgba(255,215,0,0.4); background: rgba(255,215,0,0.06); }
+.gs-score-chip--winner strong { color: #ffd700; }
+
+@media (max-width: 900px) {
+  .gamescore-layout { grid-template-columns: 1fr; }
+  .gamescore-setup { position: static; }
+}

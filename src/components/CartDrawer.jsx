@@ -1,12 +1,14 @@
 import { useEffect, useRef } from 'react'
-import { X, Trash2, ShoppingBag, Plus, Minus, Utensils, Clock, Dices } from 'lucide-react'
+import { X, Trash2, ShoppingBag, Plus, Minus, Utensils, Clock, Dices, LogIn, User } from 'lucide-react'
 import { useCart } from '../context/CartContext'
+import { useAuth } from '../context/AuthContext'
 import { formatPrice } from '../data/menuData'
 import { useNavigate } from 'react-router-dom'
 import './CartDrawer.css'
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQty, totalPrice, orderNote, setNote } = useCart()
+  const { user } = useAuth()
   const navigate = useNavigate()
   const overlayRef = useRef(null)
 
@@ -21,7 +23,11 @@ export default function CartDrawer() {
 
   const handleCheckout = () => {
     closeCart()
-    navigate('/checkout')
+    if (!user) {
+      navigate('/login', { state: { from: '/checkout' } })
+    } else {
+      navigate('/checkout')
+    }
   }
 
   const renderVisual = (item) => {
@@ -125,13 +131,19 @@ export default function CartDrawer() {
               <span className="cart-drawer__total">{formatPrice(totalPrice)}</span>
             </div>
             <p className="cart-drawer__note-tax">* Belum termasuk biaya main</p>
+            {!user && (
+              <div className="cart-login-hint">
+                <LogIn size={14}/>
+                <span>Masuk untuk melanjutkan ke pembayaran</span>
+              </div>
+            )}
             <button
               id="checkout-btn"
-              className="btn btn-primary"
+              className={`btn ${user ? 'btn-primary' : 'btn-accent'}`}
               style={{ width: '100%' }}
               onClick={handleCheckout}
             >
-              Lanjut ke Pembayaran
+              {user ? 'Lanjut ke Pembayaran' : <><LogIn size={16}/> Masuk & Pesan</>}
             </button>
           </div>
         )}

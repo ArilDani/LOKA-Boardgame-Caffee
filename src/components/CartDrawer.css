@@ -199,6 +199,20 @@
 }
 .cart-drawer__note-tax { font-size: 0.75rem; color: var(--clr-text-dim); }
 
+/* Login hint for guests */
+.cart-login-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  background: rgba(82,183,136,0.08);
+  border: 1px solid rgba(82,183,136,0.2);
+  border-radius: var(--radius-md);
+  font-size: 0.78rem;
+  color: var(--clr-accent-2);
+  margin-bottom: 4px;
+}
+
 @media (max-width: 480px) {
   .cart-drawer { width: 100vw; }
 }

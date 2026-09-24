@@ -1,0 +1,128 @@
+﻿/* ============ PROFILE PAGE ============ */
+.profile-page { min-height: 80vh; padding-block: var(--space-2xl) var(--space-3xl); position: relative; }
+.profile-bg {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 50% 50% at 80% 20%, rgba(200,150,62,0.08) 0%, transparent 60%), var(--clr-bg);
+  z-index: 0; pointer-events: none;
+}
+.profile-inner { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-xl); }
+
+/* Membership Card */
+.membership-hero {
+  padding: var(--space-xl) var(--space-2xl);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  border-color: color-mix(in srgb, var(--mem-color) 30%, transparent);
+  background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+  flex-wrap: wrap;
+}
+.membership-hero__left { display: flex; align-items: center; gap: var(--space-lg); }
+.membership-hero__avatar {
+  width: 64px; height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--mem-color), color-mix(in srgb, var(--mem-color) 60%, #000));
+  color: #000;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.6rem; font-weight: 700;
+  font-family: var(--font-display);
+  flex-shrink: 0;
+}
+.membership-hero__name  { font-size: 1.3rem; font-weight: 700; color: var(--clr-text); font-family: var(--font-display); }
+.membership-hero__email { font-size: 0.82rem; color: var(--clr-text-muted); }
+.membership-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  background: color-mix(in srgb, var(--mem-color) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--mem-color) 40%, transparent);
+  font-size: 0.78rem; font-weight: 600;
+  color: var(--mem-color);
+  margin-top: 6px;
+}
+.membership-hero__right { display: flex; flex-direction: column; gap: var(--space-sm); align-items: flex-end; }
+.membership-points__label { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--clr-text-muted); }
+.membership-points__value { font-size: 2rem; font-weight: 700; color: var(--mem-color); font-family: var(--font-display); }
+.membership-progress-wrap { width: 200px; }
+.membership-progress-bar { height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden; }
+.membership-progress-fill { height: 100%; background: var(--mem-color); border-radius: 3px; transition: width 1s ease; }
+.membership-progress-label { font-size: 0.72rem; color: var(--clr-text-muted); margin-top: 4px; text-align: right; }
+
+/* Tabs */
+.profile-tabs { display: flex; gap: var(--space-sm); }
+.profile-tab {
+  display: flex; align-items: center; gap: 6px;
+  padding: 0.5rem 1.2rem;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  font-size: 0.85rem; font-weight: 600;
+  color: var(--clr-text-muted);
+  cursor: pointer; transition: all var(--transition-fast);
+  font-family: var(--font-body);
+}
+.profile-tab.active { background: rgba(200,150,62,0.12); border-color: rgba(200,150,62,0.4); color: var(--clr-primary); }
+.profile-tab:hover:not(.active) { color: var(--clr-text); border-color: var(--clr-border-2); }
+
+/* Overview */
+.profile-overview { display: flex; flex-direction: column; gap: var(--space-xl); }
+.profile-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--space-md); }
+.profile-stat {
+  display: flex; align-items: center; gap: var(--space-md);
+  padding: var(--space-lg);
+}
+.profile-stat__icon { width: 40px; height: 40px; border-radius: var(--radius-md); background: rgba(200,150,62,0.1); color: var(--clr-primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.profile-stat__label { font-size: 0.75rem; color: var(--clr-text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.profile-stat__value { font-size: 1.1rem; font-weight: 700; color: var(--clr-text); font-family: var(--font-display); }
+
+.membership-benefits { padding: var(--space-xl); display: flex; flex-direction: column; gap: var(--space-lg); }
+.membership-benefits h4 { display: flex; align-items: center; gap: 8px; }
+.benefit-tiers { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+.benefit-tier {
+  flex: 1; min-width: 100px;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: var(--space-md);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--clr-border);
+  background: var(--clr-surface);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+.benefit-tier.active { border-color: var(--tc); background: color-mix(in srgb, var(--tc) 8%, transparent); }
+.benefit-tier__icon { font-size: 1.5rem; }
+.benefit-tier__name { font-size: 0.85rem; font-weight: 700; color: var(--clr-text); }
+.benefit-tier__pts  { font-size: 0.72rem; color: var(--clr-text-muted); }
+.benefit-tier__current { font-size: 0.7rem; color: var(--tc); font-weight: 600; }
+
+.profile-actions { display: flex; gap: var(--space-md); flex-wrap: wrap; }
+
+/* Transactions */
+.profile-transactions { display: flex; flex-direction: column; gap: var(--space-md); }
+.profile-empty { padding: var(--space-2xl); text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-md); }
+.tx-card { padding: var(--space-lg); display: flex; flex-direction: column; gap: var(--space-sm); }
+.tx-card__header { display: flex; justify-content: space-between; align-items: flex-start; }
+.tx-card__id { font-size: 0.85rem; font-weight: 600; color: var(--clr-text); font-family: var(--font-display); }
+.tx-card__date { font-size: 0.75rem; color: var(--clr-text-muted); }
+.tx-card__items { font-size: 0.82rem; color: var(--clr-text-muted); }
+.tx-card__footer { display: flex; justify-content: space-between; align-items: center; }
+.tx-card__total { font-size: 1rem; font-weight: 700; color: var(--clr-primary); font-family: var(--font-display); }
+.tx-card__points { font-size: 0.78rem; color: var(--clr-accent-2); font-weight: 600; }
+.tx-status {
+  padding: 3px 10px; border-radius: var(--radius-full); font-size: 0.7rem; font-weight: 600;
+}
+.tx-status--pending   { background: rgba(200,150,62,0.1); color: var(--clr-primary); }
+.tx-status--confirmed { background: rgba(82,183,136,0.1); color: var(--clr-accent-2); }
+.tx-status--cancelled { background: rgba(248,113,113,0.1); color: #f87171; }
+
+/* Edit */
+.profile-edit { padding: var(--space-xl); display: flex; flex-direction: column; gap: var(--space-lg); max-width: 500px; }
+.profile-edit h4 { font-size: 1.1rem; }
+.profile-edit__actions { display: flex; gap: var(--space-md); }
+
+@media (max-width: 700px) {
+  .membership-hero { flex-direction: column; align-items: flex-start; }
+  .membership-hero__right { align-items: flex-start; }
+  .membership-progress-wrap { width: 100%; }
+  .membership-progress-label { text-align: left; }
+}

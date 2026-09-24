@@ -124,9 +124,9 @@ export default function About() {
               <li>
                 <MapPin size={16} />
                 <div>
-                  <p>Jl. Loka Indah No. 1, Bandung</p>
+                  <p>BTP, Blok RB, Kabupaten Maros</p>
                   <a
-                    href="https://maps.google.com"
+                    href="https://maps.app.goo.gl/kQnKPPN9AL9Arq9Z9"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="about-map-link"
