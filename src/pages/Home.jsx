@@ -1,28 +1,44 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import {
   ArrowRight, Dice6, Coffee, UtensilsCrossed, Star,
-  Clock, Users, Gamepad2, Sparkles, ChevronDown, Store, Dices, Target, Trophy
+  Clock, Users, Gamepad2, Sparkles, ChevronDown, Store, Dices, Target, Trophy,
+  BookOpen, Instagram, Crown, Loader2
 } from 'lucide-react'
 import { useCart } from '../context/CartContext'
-import { FOOD_ITEMS, DRINK_COFFEE, PLAY_PACKAGES, formatPrice } from '../data/menuData'
+import { formatPrice, FOOD_ITEMS, DRINK_COFFEE, PLAY_PACKAGES } from '../data/menuData'
+import { supabase } from '../lib/supabase'
+import { useSectionSettings } from '../lib/sectionSettings'
+import BlogSection    from '../components/BlogSection'
+import InstagramSection from '../components/InstagramSection'
+import RatingSection  from '../components/RatingSection'
 import './Home.css'
 
-// Reveal on scroll hook
+// Reveal on scroll hook (handles dynamic content)
 function useReveal() {
   useEffect(() => {
-    const els = document.querySelectorAll('.reveal')
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') }),
-      { threshold: 0.12 }
+      { threshold: 0.10 }
     )
-    els.forEach(el => obs.observe(el))
-    return () => obs.disconnect()
+    
+    // Observe existing
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+    
+    // Observe future elements
+    const mut = new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(node => {
+        if (node.nodeType === 1) {
+          if (node.classList.contains('reveal')) obs.observe(node)
+          node.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+        }
+      }))
+    })
+    mut.observe(document.body, { childList: true, subtree: true })
+    
+    return () => { obs.disconnect(); mut.disconnect(); }
   }, [])
 }
-
-const FEATURED_FOOD  = FOOD_ITEMS.slice(0, 3)
-const FEATURED_DRINK = DRINK_COFFEE.slice(0, 3)
 
 const STATS = [
   { icon: <Gamepad2 size={24} />, value: '200+', label: 'Judul Boardgame' },
@@ -59,6 +75,39 @@ export default function Home() {
   const { addItem } = useCart()
   const navigate = useNavigate()
   const heroRef = useRef(null)
+  const sectionSettings = useSectionSettings()
+
+  const [featuredFood, setFeaturedFood] = useState([])
+  const [featuredDrink, setFeaturedDrink] = useState([])
+  const [playPackages, setPlayPackages] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    async function loadData() {
+      setLoading(true)
+      try {
+        const [foodRes, drinkRes, playRes] = await Promise.all([
+          supabase.from('products').select('*').eq('category', 'food').eq('is_available', true).limit(3),
+          supabase.from('products').select('*').eq('category', 'coffee').eq('is_available', true).limit(3),
+          supabase.from('products').select('*').eq('category', 'play').eq('is_available', true)
+        ]);
+        
+        // Fallback to dummy data if DB returns 0 items (e.g. less than 100 transactions/empty DB)
+        const dummyFood = FOOD_ITEMS.slice(0, 3).map(x => ({ ...x, image_url: x.image }));
+        const dummyDrink = DRINK_COFFEE.slice(0, 3).map(x => ({ ...x, image_url: x.image }));
+        const dummyPlay = PLAY_PACKAGES.map(x => ({ ...x, image_url: x.image }));
+
+        setFeaturedFood(foodRes.data?.length > 0 ? foodRes.data : dummyFood)
+        setFeaturedDrink(drinkRes.data?.length > 0 ? drinkRes.data : dummyDrink)
+        setPlayPackages(playRes.data?.length > 0 ? playRes.data : dummyPlay)
+      } catch (err) {
+        console.error("Home fetch error:", err)
+      } finally {
+        setLoading(false)
+      }
+    }
+    loadData()
+  }, [])
 
   // Parallax hero
   useEffect(() => {
@@ -71,13 +120,16 @@ export default function Home() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const handleAddItem = (item) => {
+    addItem({ ...item, image: item.image_url })
+  }
+
   return (
     <div className="home">
       {/* ── HERO ── */}
       <section className="hero noise-overlay">
         <div className="hero__bg" ref={heroRef}>
           <div className="hero__gradient" />
-          {/* Floating dice decorations */}
           <div className="hero__dice hero__dice--1"><Dices size={32} /></div>
           <div className="hero__dice hero__dice--2"><Trophy size={32} /></div>
           <div className="hero__dice hero__dice--3"><Dice6 size={32} /></div>
@@ -91,13 +143,13 @@ export default function Home() {
           </div>
 
           <h1 className="hero__title animate-fade-up delay-1">
-            Makan, Minum &amp;<br />
+            Makan, Minum &<br />
             <span className="gradient-text">Main Bersama</span>
           </h1>
 
           <p className="hero__subtitle animate-fade-up delay-2">
             Nikmati pengalaman bermain boardgame terbaik dengan menu lezat khas Loka.
-            200+ judul game, suasana cozy, dan kopi signature yang bikin betah!
+            Ratusan judul game, suasana cozy, dan kopi signature yang bikin betah!
           </p>
 
           <div className="hero__cta animate-fade-up delay-3">
@@ -111,7 +163,6 @@ export default function Home() {
             </button>
           </div>
 
-          {/* Scroll indicator */}
           <div className="hero__scroll">
             <ChevronDown size={20} className="animate-float" />
           </div>
@@ -161,26 +212,38 @@ export default function Home() {
             <p className="section-subtitle">Dimasak dengan cinta, disajikan dengan senyuman — cocok dinikmati sambil main game!</p>
           </div>
 
-          <div className="menu-preview-grid">
-            {FEATURED_FOOD.map((item, i) => (
-              <div key={item.id} className={`menu-preview-card glass-card reveal delay-${i + 1}`}>
-                <div className="menu-preview-card__visual">
-                  <img src={item.image} alt={item.name} className="menu-preview-card__image" />
-                </div>
-                {item.tag && <span className="menu-preview-card__tag">{item.tag}</span>}
-                <div className="menu-preview-card__body">
-                  <h4>{item.name}</h4>
-                  <p>{item.desc}</p>
-                  <div className="menu-preview-card__footer">
-                    <span className="menu-preview-card__price">{formatPrice(item.price)}</span>
-                    <button className="btn btn-primary btn-sm" onClick={() => addItem(item)}>
-                      + Pesan
-                    </button>
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <Loader2 size={32} className="spin-icon" style={{ color: 'var(--clr-primary)' }} />
+            </div>
+          ) : (
+            <div className="menu-preview-grid">
+              {featuredFood.map((item, i) => (
+                <div key={item.id} className={`menu-preview-card glass-card reveal delay-${i + 1}`}>
+                  <div className="menu-preview-card__visual">
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.name} className="menu-preview-card__image" />
+                    ) : (
+                      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--clr-bg-3)' }}>
+                        <UtensilsCrossed size={48} color="var(--clr-text-dim)" />
+                      </div>
+                    )}
+                  </div>
+                  {item.tag && <span className="menu-preview-card__tag">{item.tag}</span>}
+                  <div className="menu-preview-card__body">
+                    <h4>{item.name}</h4>
+                    <p>{item.description}</p>
+                    <div className="menu-preview-card__footer">
+                      <span className="menu-preview-card__price">{formatPrice(item.price)}</span>
+                      <button className="btn btn-primary btn-sm" onClick={() => handleAddItem(item)}>
+                        + Pesan
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           <div className="home-menu__cta reveal">
             <Link to="/menu" className="btn btn-secondary btn-lg">
@@ -197,20 +260,28 @@ export default function Home() {
             <span className="section-label"><Coffee size={12} />Signature Drinks</span>
             <h2 className="section-title">Kopi &amp; Minuman <span className="gradient-text">Khas Loka</span></h2>
             <p>Dari Lokachino klasik hingga V60 single origin — setiap tegukan menemani petualangan boardgame kamu.</p>
-            <ul className="home-coffee__list">
-              {FEATURED_DRINK.map(d => (
-                <li key={d.id} className="home-coffee__list-item">
-                  <div className="home-coffee__list-visual">
-                    <img src={d.image} alt={d.name} className="home-coffee__list-image" />
-                  </div>
-                  <div>
-                    <p className="home-coffee__list-name">{d.name}</p>
-                    <p className="home-coffee__list-price">{formatPrice(d.price)}</p>
-                  </div>
-                  <button className="btn btn-ghost btn-sm" onClick={() => addItem(d)}>+ Pesan</button>
-                </li>
-              ))}
-            </ul>
+            {loading ? (
+              <div style={{ padding: '1rem' }}><Loader2 size={24} className="spin-icon" /></div>
+            ) : (
+              <ul className="home-coffee__list">
+                {featuredDrink.map(d => (
+                  <li key={d.id} className="home-coffee__list-item">
+                    <div className="home-coffee__list-visual">
+                      {d.image_url ? (
+                        <img src={d.image_url} alt={d.name} className="home-coffee__list-image" />
+                      ) : (
+                        <Coffee size={24} color="var(--clr-text-dim)" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="home-coffee__list-name">{d.name}</p>
+                      <p className="home-coffee__list-price">{formatPrice(d.price)}</p>
+                    </div>
+                    <button className="btn btn-ghost btn-sm" onClick={() => handleAddItem(d)}>+ Pesan</button>
+                  </li>
+                ))}
+              </ul>
+            )}
             <Link to="/menu" className="btn btn-accent">
               Lihat Semua Minuman <ArrowRight size={16} />
             </Link>
@@ -232,31 +303,115 @@ export default function Home() {
             <span className="section-label"><Gamepad2 size={12} />Paket Main</span>
             <h2 className="section-title">Harga Main yang <span className="gradient-text">Terjangkau</span></h2>
           </div>
-          <div className="play-packages">
-            {PLAY_PACKAGES.map((pkg, i) => (
-              <div key={pkg.id} className={`play-package-card reveal delay-${i + 1} ${pkg.tag ? 'play-package-card--featured' : ''}`}>
-                {pkg.tag && <div className="play-package-card__ribbon">{pkg.tag}</div>}
-                <div className="play-package-card__icon">
-                  {pkg.icon === 'Clock' ? <Clock size={48} /> : <Dices size={48} />}
+          
+          {loading ? (
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '2rem' }}>
+              <Loader2 size={32} className="spin-icon" style={{ color: 'var(--clr-primary)' }} />
+            </div>
+          ) : (
+            <div className="play-packages">
+              {playPackages.map((pkg, i) => (
+                <div key={pkg.id} className={`play-package-card reveal delay-${i + 1} ${pkg.tag ? 'play-package-card--featured' : ''}`}>
+                  {pkg.tag && <div className="play-package-card__ribbon">{pkg.tag}</div>}
+                  <div className="play-package-card__icon">
+                    {pkg.name.toLowerCase().includes('jam') ? <Clock size={48} /> : <Dices size={48} />}
+                  </div>
+                  <h3>{pkg.name}</h3>
+                  <div className="play-package-card__price">
+                    <span className="play-package-card__amount">{formatPrice(pkg.price)}</span>
+                  </div>
+                  <p>{pkg.description}</p>
+                  <button
+                    className={`btn ${pkg.tag ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ width: '100%', marginTop: 'auto' }}
+                    onClick={() => handleAddItem(pkg)}
+                  >
+                    Pilih Paket
+                  </button>
                 </div>
-                <h3>{pkg.name}</h3>
-                <div className="play-package-card__price">
-                  <span className="play-package-card__amount">{formatPrice(pkg.price)}</span>
-                  <span className="play-package-card__unit">{pkg.unit}</span>
-                </div>
-                <p>{pkg.description}</p>
-                <button
-                  className={`btn ${pkg.tag ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ width: '100%', marginTop: 'auto' }}
-                  onClick={() => addItem(pkg)}
-                >
-                  Pilih Paket
-                </button>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </section>
+
+      {/* ── RATING — Best This Month ── */}
+      <section className="section home-rating" id="rating">
+        <div className="container">
+          <div className="section-header reveal">
+            <span className="section-label"><Star size={12} />Ulasan Pelanggan</span>
+            <h2 className="section-title">Rating <span className="gradient-text">Terbaik Bulan Ini</span></h2>
+            <p className="section-subtitle">Lihat produk favorit dan ulasan terbaru dari pelanggan setia Loka.</p>
+          </div>
+          <RatingSection showForm={true} />
+        </div>
+      </section>
+
+      {/* ── ARTIKEL BLOG ── */}
+      {sectionSettings.blog && (
+        <section className="section home-blog" id="artikel">
+          <div className="container">
+            <div className="section-header reveal">
+              <span className="section-label"><BookOpen size={12} />Blog & Artikel</span>
+              <h2 className="section-title">Cerita dari <span className="gradient-text">Loka</span></h2>
+              <p className="section-subtitle">Update terbaru, tips bermain, dan cerita seru dari komunitas Loka Boardgame Cafe.</p>
+            </div>
+            <BlogSection limit={3} />
+          </div>
+        </section>
+      )}
+
+      {/* ── INSTAGRAM ── */}
+      {sectionSettings.instagram && (
+        <section id="instagram" style={{ padding: 0 }}>
+          <div className="container" style={{ paddingTop: "var(--space-md)" }}>
+            <div className="section-header reveal">
+              <span className="section-label"><Instagram size={12} />Ikuti Kami</span>
+              <h2 className="section-title">Di <span className="gradient-text">Instagram</span></h2>
+              <p className="section-subtitle">Ikuti kami untuk update terbaru, event seru, dan promo spesial!</p>
+            </div>
+          </div>
+          <InstagramSection />
+        </section>
+      )}
+
+      {/* ── MEMBERSHIP TEASER ── */}
+      {sectionSettings.membership && (
+        <section className="section home-membership">
+          <div className="container">
+            <div className="home-membership__card reveal">
+              <div className="home-membership__bg" />
+              <div className="home-membership__content">
+                <div className="home-membership__badge">
+                  <Crown size={16} /> Coming Soon
+                </div>
+                <h2>Program Membership <span className="gradient-text">Loka</span></h2>
+                <p>
+                  Dapatkan keuntungan eksklusif dengan menjadi member Loka!
+                  Nikmati diskon, poin reward, dan akses event khusus.
+                </p>
+                <Link to="/membership" className="btn btn-primary btn-lg">
+                  <Crown size={18} />
+                  Pelajari Membership
+                </Link>
+              </div>
+              <div className="home-membership__tiers">
+                {[
+                  { name: "Bronze", color: "#CD7F32", icon: "🥉" },
+                  { name: "Silver", color: "#C0C0C0", icon: "🥈" },
+                  { name: "Gold",   color: "#FFD700", icon: "🥇" },
+                  { name: "Platinum", color: "#E5E4E2", icon: "💎" },
+                ].map((t, i) => (
+                  <div key={t.name} className={`home-tier-chip reveal delay-${i + 1}`} style={{ "--tc": t.color }}>
+                    <span>{t.icon}</span>
+                    <span>{t.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* ── CTA BANNER ── */}
       <section className="section home-cta">

@@ -1,18 +1,20 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart }  from "../context/CartContext";
 import { useAuth }  from "../context/AuthContext";
 import { formatPrice } from "../data/menuData";
+import { supabase }  from "../lib/supabase";
 import { CheckCircle2, ChevronRight, CreditCard, Banknote, QrCode, ArrowLeft, ShoppingBag, ClipboardList, Clock, Utensils, Dices, Star, Zap } from "lucide-react";
 import "./Checkout.css";
 
-const PAYMENT_METHODS = [
-  { id: "cash",     label: "Bayar di Kasir",  icon: <Banknote size={20}/>, desc: "Bayar tunai langsung di meja kasir" },
-  { id: "transfer", label: "Transfer Bank",    icon: <CreditCard size={20}/>, desc: "BCA / Mandiri / BNI / BRI" },
-  { id: "qris",     label: "QRIS",             icon: <QrCode size={20}/>, desc: "Scan QR dengan semua e-wallet" },
+// Dynamic payment methods will be fetched from Supabase
+const DEFAULT_PAYMENT_METHODS = [
+  { method_id: "cash",     label: "Bayar di Kasir",  icon: "Banknote", desc: "Bayar tunai langsung di meja kasir" },
+  { method_id: "transfer", label: "Transfer Bank",    icon: "CreditCard", desc: "BCA / Mandiri / BNI / BRI" },
+  { method_id: "qris",     label: "QRIS",             icon: "QrCode", desc: "Scan QR dengan semua e-wallet" },
 ];
 
-const API = import.meta.env.VITE_API_URL || "/api";
+// Supabase-based order ID generator
 
 function genOrderId() {
   return "LKA-" + Math.floor(Date.now() / 1000).toString().slice(-6).toUpperCase();
@@ -20,16 +22,40 @@ function genOrderId() {
 
 export default function Checkout() {
   const { items, totalPrice, orderNote, clearCart } = useCart();
-  const { user, token, authFetch } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
 
   const [step,    setStep]    = useState(1);
   const [payment, setPayment] = useState("cash");
   const [orderId] = useState(genOrderId);
-  const [form,    setForm]    = useState({ name: user?.name || "", table: "", phone: user?.phone || "", note: orderNote });
+  const [form,    setForm]    = useState({ name: profile?.name || "", table: "", phone: profile?.phone || "", note: orderNote, order_type: "dine-in" });
   const [errors,  setErrors]  = useState({});
   const [loading, setLoading] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
+  const [paymentMethods, setPaymentMethods] = useState(DEFAULT_PAYMENT_METHODS);
+
+  // Fetch dynamic payment methods
+  useEffect(() => {
+    supabase.from("payment_methods").select("*").eq("is_active", true).order("sort_order")
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setPaymentMethods(data.map(m => ({
+            method_id: m.method_id,
+            label: m.label,
+            icon: m.type === "cash" ? "Banknote" : m.type === "qris" ? "QrCode" : "CreditCard",
+            desc: m.instructions || m.bank_name
+          })));
+          if (!data.find(m => m.method_id === "cash")) setPayment(data[0].method_id);
+        }
+      });
+  }, []);
+
+  // Helper to render icon
+  const renderIcon = (iconName) => {
+    if (iconName === "Banknote") return <Banknote size={20}/>;
+    if (iconName === "QrCode") return <QrCode size={20}/>;
+    return <CreditCard size={20}/>;
+  };
 
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -39,7 +65,7 @@ export default function Checkout() {
   const validate = () => {
     const errs = {};
     if (!form.name.trim())  errs.name  = "Nama wajib diisi";
-    if (!form.table.trim()) errs.table = "Nomor meja wajib diisi";
+    if (form.order_type === "dine-in" && !form.table.trim()) errs.table = "Nomor meja wajib diisi";
     return errs;
   };
 
@@ -53,36 +79,55 @@ export default function Checkout() {
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      // Submit order to API
-      const orderData = {
+      const pointsEarned = Math.floor(totalPrice / 1000);
+
+      // Insert transaction
+      const { error: txErr } = await supabase.from("transactions").insert({
+        id: orderId,
+        user_id: user.id,
         customer_name:  form.name,
-        table_number:   form.table,
+        table_number:   form.order_type === "take-away" ? "Take Away" : form.table,
         phone:          form.phone,
         note:           form.note,
         payment_method: payment,
         total_amount:   totalPrice,
-        items: items.map(i => ({ id: i.id, name: i.name, price: i.price, qty: i.qty })),
-      };
+        points_earned:  pointsEarned,
+        status: "pending",
+        payment_status: "pending",
+      });
+      if (txErr) throw txErr;
 
-      const res = await authFetch(`${API}/transactions`, { method: "POST", body: JSON.stringify(orderData) });
+      // Insert items
+      const itemRows = items.map(i => ({
+        transaction_id: orderId,
+        product_id: i.id,
+        product_name: i.name,
+        price: i.price,
+        qty: i.qty,
+        subtotal: i.price * i.qty,
+      }));
+      await supabase.from("transaction_items").insert(itemRows);
 
-      if (res.ok) {
-        const data = await res.json();
-        setEarnedPoints(data.pointsEarned || 0);
-        clearCart();
-
-        // If not cash, go to mock payment gateway
-        if (payment !== "cash") {
-          navigate(`/payment/mock?order_id=${orderId}&amount=${totalPrice}&method=${payment}`);
-        } else {
-          setStep(3);
-        }
-      } else {
-        const err = await res.json();
-        alert(err.message || "Gagal membuat pesanan");
+      // Update user points & total_spent
+      if (profile) {
+        const newPoints = (profile.points || 0) + pointsEarned;
+        const newSpent  = (profile.total_spent || 0) + totalPrice;
+        const membership =
+          newPoints >= 5000 ? "Platinum" :
+          newPoints >= 2000 ? "Gold" :
+          newPoints >= 500  ? "Silver" : "Bronze";
+        await supabase.from("profiles").update({
+          points: newPoints, total_spent: newSpent, membership
+        }).eq("id", user.id);
+        await refreshProfile();
       }
-    } catch {
-      alert("Koneksi ke server gagal. Pastikan server berjalan.");
+
+      setEarnedPoints(pointsEarned);
+
+      // Do NOT clear cart yet. PaymentMock will clear it upon admin confirmation.
+      navigate(`/payment/mock?order_id=${orderId}&amount=${totalPrice}&method=${payment}`);
+    } catch (err) {
+      alert("Gagal membuat pesanan: " + (err.message || "Coba lagi"));
     } finally {
       setLoading(false);
     }
@@ -110,7 +155,7 @@ export default function Checkout() {
           <div className="checkout-points-banner">
             <Star size={16}/>
             <span>Kamu akan mendapat <strong>+{Math.floor(totalPrice/1000)} poin</strong> dari transaksi ini!</span>
-            <span className="checkout-points-current">Poin saat ini: {user.points.toLocaleString("id-ID")}</span>
+            <span className="checkout-points-current">Poin saat ini: {(profile?.points || 0).toLocaleString("id-ID")}</span>
           </div>
         )}
 
@@ -143,11 +188,26 @@ export default function Checkout() {
                   {errors.name && <span className="form-error">{errors.name}</span>}
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="co-table">Nomor Meja *</label>
-                  <input id="co-table" name="table" className={`form-input ${errors.table ? "form-input--error" : ""}`}
-                    placeholder="Contoh: 7 atau VIP-1" value={form.table} onChange={handleChange}/>
-                  {errors.table && <span className="form-error">{errors.table}</span>}
+                  <label className="form-label">Tipe Pesanan *</label>
+                  <div style={{ display: "flex", gap: "1rem" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                      <input type="radio" name="order_type" value="dine-in" checked={form.order_type === "dine-in"} onChange={handleChange} />
+                      Makan/Minum di Tempat
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
+                      <input type="radio" name="order_type" value="take-away" checked={form.order_type === "take-away"} onChange={handleChange} />
+                      Take Away
+                    </label>
+                  </div>
                 </div>
+                {form.order_type === "dine-in" && (
+                  <div className="form-group">
+                    <label className="form-label" htmlFor="co-table">Nomor Meja *</label>
+                    <input id="co-table" name="table" className={`form-input ${errors.table ? "form-input--error" : ""}`}
+                      placeholder="Contoh: 7 atau VIP-1" value={form.table} onChange={handleChange}/>
+                    {errors.table && <span className="form-error">{errors.table}</span>}
+                  </div>
+                )}
                 <div className="form-group">
                   <label className="form-label" htmlFor="co-phone">No. WhatsApp (opsional)</label>
                   <input id="co-phone" name="phone" className="form-input" type="tel"
@@ -163,12 +223,12 @@ export default function Checkout() {
                 <div className="form-group">
                   <label className="form-label">Metode Pembayaran</label>
                   <div className="payment-methods">
-                    {PAYMENT_METHODS.map(m => (
-                      <label key={m.id} className={`payment-method ${payment === m.id ? "payment-method--active" : ""}`}>
-                        <input type="radio" name="payment" value={m.id} checked={payment === m.id} onChange={() => setPayment(m.id)} hidden/>
-                        <span className="payment-method__icon">{m.icon}</span>
+                    {paymentMethods.map(m => (
+                      <label key={m.method_id} className={`payment-method ${payment === m.method_id ? "payment-method--active" : ""}`}>
+                        <input type="radio" name="payment" value={m.method_id} checked={payment === m.method_id} onChange={() => setPayment(m.method_id)} hidden/>
+                        <span className="payment-method__icon">{renderIcon(m.icon)}</span>
                         <div><p className="payment-method__label">{m.label}</p><p className="payment-method__desc">{m.desc}</p></div>
-                        <div className={`payment-method__radio ${payment === m.id ? "checked" : ""}`}/>
+                        <div className={`payment-method__radio ${payment === m.method_id ? "checked" : ""}`}/>
                       </label>
                     ))}
                   </div>
@@ -217,7 +277,7 @@ export default function Checkout() {
               <div className="confirm-row"><span>No. Meja</span><strong>{form.table}</strong></div>
               {form.phone && <div className="confirm-row"><span>WhatsApp</span><strong>{form.phone}</strong></div>}
               {form.note  && <div className="confirm-row"><span>Catatan</span><strong>{form.note}</strong></div>}
-              <div className="confirm-row"><span>Pembayaran</span><strong>{PAYMENT_METHODS.find(m => m.id === payment)?.label}</strong></div>
+              <div className="confirm-row"><span>Pembayaran</span><strong>{paymentMethods.find(m => m.method_id === payment)?.label}</strong></div>
             </div>
             <div className="confirm-items">
               {items.map(item => (
@@ -237,7 +297,7 @@ export default function Checkout() {
             <div className="confirm-actions">
               <button className="btn btn-secondary" onClick={() => setStep(1)}><ArrowLeft size={16}/> Edit Pesanan</button>
               <button id="confirm-order-btn" className="btn btn-primary btn-lg" onClick={handleConfirm} disabled={loading}>
-                {loading ? "Memproses..." : <><CheckCircle2 size={18}/> {payment !== "cash" ? "Lanjut ke Pembayaran" : "Konfirmasi & Pesan"}</>}
+                {loading ? "Memproses..." : <><CheckCircle2 size={18}/> Lanjutkan Pembayaran</>}
               </button>
             </div>
           </div>
@@ -260,7 +320,7 @@ export default function Checkout() {
             </div>
             <div className="success-info glass-card">
               <p style={{ display:"flex", alignItems:"center", gap:"8px" }}><ClipboardList size={16}/> Pesanan dikirim ke <strong>Meja {form.table}</strong></p>
-              <p style={{ display:"flex", alignItems:"center", gap:"8px" }}><CreditCard size={16}/> Pembayaran via <strong>{PAYMENT_METHODS.find(m => m.id === payment)?.label}</strong></p>
+              <p style={{ display:"flex", alignItems:"center", gap:"8px" }}><CreditCard size={16}/> Pembayaran via <strong>{paymentMethods.find(m => m.method_id === payment)?.label}</strong></p>
               <p style={{ display:"flex", alignItems:"center", gap:"8px" }}><Clock size={16}/> Estimasi waktu: <strong>10–15 menit</strong></p>
             </div>
             <div className="success-actions">

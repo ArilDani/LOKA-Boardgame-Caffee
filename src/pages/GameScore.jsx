@@ -3,14 +3,13 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Plus, Trash2, Trophy, Play, Save, X, ChevronDown, ChevronUp } from "lucide-react";
 import { BOARDGAMES } from "../data/menuData";
+import { supabase } from "../lib/supabase";
 import "./GameScore.css";
-
-const API = import.meta.env.VITE_API_URL || "/api";
 
 function newPlayer(n) { return { name: `Pemain ${n}`, score: 0 }; }
 
 export default function GameScore() {
-  const { user, authFetch } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
 
   const [sessions,    setSessions]    = useState([]);
@@ -27,8 +26,13 @@ export default function GameScore() {
 
   const fetchSessions = async () => {
     try {
-      const res = await authFetch(`${API}/scores/my`);
-      if (res.ok) setSessions(await res.json());
+      const { data } = await supabase
+        .from("game_scores")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("played_at", { ascending: false })
+        .limit(30);
+      setSessions((data || []).map(r => ({ ...r, players: r.players, scores: r.scores })));
     } catch {}
   };
 
@@ -72,16 +76,22 @@ export default function GameScore() {
     const totals = getTotals();
     const scoresData = players.map((p, i) => ({ name: p.name, total: totals[i] }));
     try {
-      const res = await authFetch(`${API}/scores`, {
-        method: "POST",
-        body: JSON.stringify({ session_name: sessionName, game_name: gameName, players: players.map(p => p.name), scores: scoresData, winner: getWinner() }),
+      const { error } = await supabase.from("game_scores").insert({
+        user_id: user.id,
+        session_name: sessionName,
+        game_name: gameName,
+        players: players.map(p => p.name),
+        scores: scoresData,
+        winner: getWinner(),
       });
-      if (res.ok) { setSavedMsg("Skor berhasil disimpan! 🎉"); setTimeout(() => setSavedMsg(""), 3000); }
+      if (error) throw error;
+      setSavedMsg("Skor berhasil disimpan! 🎉");
+      setTimeout(() => setSavedMsg(""), 3000);
     } catch { setSavedMsg("Gagal menyimpan, coba lagi."); }
   };
 
   const deleteSession = async (id) => {
-    await authFetch(`${API}/scores/${id}`, { method: "DELETE" });
+    await supabase.from("game_scores").delete().eq("id", id).eq("user_id", user.id);
     setSessions(s => s.filter(ss => ss.id !== id));
   };
 
@@ -100,8 +110,8 @@ export default function GameScore() {
         </div>
 
         <div className="gamescore-tabs">
-          <button className={`profile-tab ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}><Play size={14}/> Sesi Live</button>
-          <button className={`profile-tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")}><Trophy size={14}/> Riwayat</button>
+          <button className={`gamescore-tab ${tab === "live" ? "active" : ""}`} onClick={() => setTab("live")}><Play size={14}/> Sesi Live</button>
+          <button className={`gamescore-tab ${tab === "history" ? "active" : ""}`} onClick={() => setTab("history")}><Trophy size={14}/> Riwayat</button>
         </div>
 
         {tab === "live" && (
@@ -225,7 +235,7 @@ export default function GameScore() {
                     </div>
                     <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                       {s.winner && <span className="gs-history-winner">👑 {s.winner}</span>}
-                      <button className="btn-icon btn-ghost" onClick={() => deleteSession(s.id)} style={{ color: "#f87171", padding: "6px" }}>
+                      <button className="gs-delete-btn" onClick={() => deleteSession(s.id)} title="Hapus sesi ini">
                         <Trash2 size={15}/>
                       </button>
                     </div>

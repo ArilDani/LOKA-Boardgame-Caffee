@@ -1,11 +1,12 @@
-﻿import { useEffect, useState } from 'react'
-import { BOARDGAMES } from '../data/menuData'
-import { Search, Users, Clock, Zap, X, MessageCircle, ShieldCheck, Star, Package } from 'lucide-react'
+import { useEffect, useState, useCallback } from 'react'
+import { Search, Users, Clock, Zap, X, ShoppingBag, ShieldCheck, Star, Package, Loader2 } from 'lucide-react'
+import { useCart } from '../context/CartContext'
+import { supabase } from '../lib/supabase'
 import './Games.css'
 
 const CATEGORIES = ['Semua', 'Strategy', 'Family', 'Party', 'Cooperative', 'Card Game', 'Classic', 'Dexterity', 'Social']
 const DIFFICULTY_COLOR = { Easy: '#52b788', Medium: '#c8963e', Hard: '#f87171' }
-const ADMIN_WA = '6285327639133'
+const ADMIN_WA = '6285327639133' // You may want to fetch this from settings later
 
 function CategoryIcon({ category, size = 32 }) {
   const s = size
@@ -95,18 +96,18 @@ function CategoryIcon({ category, size = 32 }) {
   }
 }
 
-const RENT_DURATIONS = [
-  { id: '1h',  label: '1 Jam',   hours: 1,    price: 10000 },
-  { id: '2h',  label: '2 Jam',   hours: 2,    price: 20000 },
-  { id: '3h',  label: '3 Jam',   hours: 3,    price: 30000 },
-  { id: 'all', label: 'All Day', hours: null,  price: 30000 },
-]
-
-function RentalModal({ game, onClose }) {
+function RentalModal({ game, onClose, waNumber, rentAwayNote }) {
+  const RENT_DURATIONS = [
+    { id: '1h',  label: '1 Jam',   hours: 1,    price: game.rent_price_per_hour || 10000 },
+    { id: '2h',  label: '2 Jam',   hours: 2,    price: (game.rent_price_per_hour || 10000) * 2 },
+    { id: '3h',  label: '3 Jam',   hours: 3,    price: (game.rent_price_per_hour || 10000) * 3 },
+    { id: 'all', label: 'All Day', hours: null,  price: (game.rent_price_per_hour || 10000) * 3 },
+  ]
   const [duration, setDuration] = useState(RENT_DURATIONS[0])
   const [players,  setPlayers]  = useState(1)
   const [name,     setName]     = useState('')
   const [table,    setTable]    = useState('')
+  const [location, setLocation] = useState('cafe') // 'cafe' or 'home'
   const [step,     setStep]     = useState(1)
   const [nameErr,  setNameErr]  = useState('')
 
@@ -114,6 +115,8 @@ function RentalModal({ game, onClose }) {
     document.body.style.overflow = 'hidden'
     return () => { document.body.style.overflow = '' }
   }, [])
+
+  const { addItem, openCart } = useCart()
 
   const totalPrice = duration.price * players
 
@@ -123,29 +126,17 @@ function RentalModal({ game, onClose }) {
     setStep(2)
   }
 
-  const buildWaMessage = () => {
-    const durLabel = duration.id === 'all'
-      ? 'All Day (Seharian)'
-      : `${duration.label} (${duration.hours} jam)`
-    const lines = [
-      `🎲 *SEWA BOARDGAME - LOKA CAFE*`,
-      ``,
-      `📋 *Detail Sewa:*`,
-      `• Game    : ${game.name}`,
-      `• Durasi  : ${durLabel}`,
-      `• Pemain  : ${players} orang`,
-      `• Nama    : ${name}`,
-      `• Meja    : ${table || '-'}`,
-      ``,
-      `💰 *Total   : Rp ${totalPrice.toLocaleString('id-ID')}*`,
-      ``,
-      `Mohon konfirmasi ketersediaan game ini. Terima kasih! 🙏`,
-    ]
-    return encodeURIComponent(lines.join('\n'))
-  }
-
   const handleConfirm = () => {
-    window.open(`https://wa.me/${ADMIN_WA}?text=${buildWaMessage()}`, '_blank', 'noopener,noreferrer')
+    const locText = location === 'home' ? 'Sewa Pulang' : 'Main di Tempat';
+    const item = {
+      id: `rent-${game.id}-${Date.now()}`, // unique ID so multiple rentals don't merge
+      name: `Sewa Game: ${game.name} (${duration.label}) - ${players} Orang [${locText}]`,
+      price: duration.price * players, // total price for this rental config
+      qty: 1, // 1 set of rental
+      image: game.image_url,
+      icon: 'Dices',
+    }
+    addItem(item)
     onClose()
   }
 
@@ -155,7 +146,11 @@ function RentalModal({ game, onClose }) {
         <div className="rental-modal__header">
           <div className="rental-modal__title-group">
             <div className="rental-modal__icon">
-              <CategoryIcon category={game.category} size={24} />
+              {game.image_url ? (
+                <img src={game.image_url} alt={game.name} style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: '4px' }} />
+              ) : (
+                <CategoryIcon category={game.category} size={24} />
+              )}
             </div>
             <div>
               <h3 className="rental-modal__game">{game.name}</h3>
@@ -198,10 +193,27 @@ function RentalModal({ game, onClose }) {
               </div>
 
               <div className="rental-field">
-                <label className="rental-label" htmlFor="rent-table">Nomor Meja (opsional)</label>
-                <input id="rent-table" className="form-input rental-input"
-                  placeholder="Contoh: 5" value={table} onChange={e => setTable(e.target.value)}/>
+                <label className="rental-label">Lokasi Bermain</label>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                  <button className={`btn ${location === 'cafe' ? 'btn-primary' : 'btn-ghost'}`} style={{ border: '1px solid var(--clr-border)' }} onClick={() => setLocation('cafe')}>Main di Cafe</button>
+                  <button className={`btn ${location === 'home' ? 'btn-primary' : 'btn-ghost'}`} style={{ border: '1px solid var(--clr-border)' }} onClick={() => setLocation('home')}>Sewa Pulang</button>
+                </div>
               </div>
+
+              {location === 'cafe' ? (
+                <div className="rental-field">
+                  <label className="rental-label" htmlFor="rent-table">Nomor Meja (opsional)</label>
+                  <input id="rent-table" className="form-input rental-input"
+                    placeholder="Contoh: 5" value={table} onChange={e => setTable(e.target.value)}/>
+                </div>
+              ) : (
+                <div className="rental-field" style={{ backgroundColor: 'var(--clr-bg-2)', padding: '12px', borderRadius: '8px', border: '1px solid var(--clr-primary)' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--clr-primary)', display: 'flex', gap: '6px', alignItems: 'flex-start' }}>
+                    <ShieldCheck size={16} style={{ flexShrink: 0, marginTop: '2px' }}/> 
+                    {rentAwayNote || "Catatan: Game tidak diantarkan ke rumah. Silakan ambil pesanan Anda langsung di kasir Loka Boardgame Cafe."}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="rental-modal__price-bar">
@@ -217,7 +229,7 @@ function RentalModal({ game, onClose }) {
             <div className="rental-modal__body rental-confirm">
               <div className="rental-confirm__banner">
                 <ShieldCheck size={18}/>
-                <span>Pesanan dikirim ke <strong>WhatsApp Admin</strong> Loka</span>
+                <span>Lanjut ke <strong>Keranjang Pesanan</strong> untuk pembayaran</span>
               </div>
               <div className="rental-confirm__rows">
                 <div className="rental-confirm__row"><span>Game</span><strong>{game.name}</strong></div>
@@ -225,7 +237,8 @@ function RentalModal({ game, onClose }) {
                 <div className="rental-confirm__row"><span>Durasi</span><strong>{duration.label}{duration.hours ? ` (${duration.hours} jam)` : ' (Seharian)'}</strong></div>
                 <div className="rental-confirm__row"><span>Pemain</span><strong>{players} orang</strong></div>
                 <div className="rental-confirm__row"><span>Nama</span><strong>{name}</strong></div>
-                {table && <div className="rental-confirm__row"><span>Meja</span><strong>{table}</strong></div>}
+                <div className="rental-confirm__row"><span>Lokasi</span><strong>{location === 'home' ? 'Sewa Pulang' : 'Main di Cafe'}</strong></div>
+                {location === 'cafe' && table && <div className="rental-confirm__row"><span>Meja</span><strong>{table}</strong></div>}
               </div>
               <div className="rental-confirm__total">
                 <span>Total Pembayaran</span>
@@ -233,13 +246,13 @@ function RentalModal({ game, onClose }) {
               </div>
               <div className="rental-confirm__note">
                 <Star size={12}/>
-                <span>Tarif sewa dihitung per orang. Pembayaran di kasir Loka.</span>
+                <span>Tarif sewa dihitung per orang. Bisa bayar via QRIS/Transfer/Kasir.</span>
               </div>
             </div>
             <div className="rental-modal__actions">
               <button className="btn btn-secondary" onClick={() => setStep(1)}>← Edit</button>
-              <button className="btn btn-wa" onClick={handleConfirm}>
-                <MessageCircle size={18}/> Kirim ke WhatsApp Admin
+              <button className="btn btn-primary" onClick={handleConfirm}>
+                <ShoppingBag size={18}/> Tambahkan ke Keranjang
               </button>
             </div>
           </>
@@ -253,10 +266,31 @@ export default function Games() {
   const [search,   setSearch]   = useState('')
   const [category, setCategory] = useState('Semua')
   const [rentGame, setRentGame] = useState(null)
+  const [games,    setGames]    = useState([])
+  const [loading,  setLoading]  = useState(true)
+  const [waNumber, setWaNumber] = useState(ADMIN_WA)
+  const [rentAwayNote, setRentAwayNote] = useState('')
 
-  useEffect(() => { window.scrollTo(0, 0) }, [])
+  const loadGames = useCallback(async () => {
+    setLoading(true)
+    const [gamesRes, waRes, noteRes] = await Promise.all([
+      supabase.from('boardgames').select('*').eq('is_active', true).order('name'),
+      supabase.from('settings').select('value').eq('key', 'whatsapp_number').single(),
+      supabase.from('settings').select('value').eq('key', 'game_rent_away_note').single()
+    ]);
+    
+    setGames(gamesRes.data || [])
+    if (waRes.data?.value) setWaNumber(waRes.data.value)
+    if (noteRes.data?.value) setRentAwayNote(noteRes.data.value)
+    setLoading(false)
+  }, [])
 
-  const filtered = BOARDGAMES.filter(g => {
+  useEffect(() => { 
+    window.scrollTo(0, 0)
+    loadGames()
+  }, [loadGames])
+
+  const filtered = games.filter(g => {
     const matchCat    = category === 'Semua' || g.category === category
     const matchSearch = g.name.toLowerCase().includes(search.toLowerCase())
     return matchCat && matchSearch
@@ -269,10 +303,10 @@ export default function Games() {
         <div className="container games-header__content">
           <span className="section-label"><Zap size={12}/>Koleksi Game</span>
           <h1>Boardgame <span className="gradient-text">Library</span></h1>
-          <p>Temukan 200+ judul boardgame dari berbagai genre — strategi, keluarga, pesta, dan banyak lagi!</p>
+          <p>Temukan ratusan judul boardgame dari berbagai genre — strategi, keluarga, pesta, dan banyak lagi!</p>
           <div className="games-rental-ribbon">
             <Package size={15}/>
-            <span>Klik kartu game untuk <strong>menyewa</strong> dan konfirmasi langsung via WhatsApp!</span>
+            <span>Klik kartu game untuk <strong>menyewa</strong> dan bayar langsung di keranjang pesanan!</span>
           </div>
         </div>
       </div>
@@ -294,67 +328,75 @@ export default function Games() {
           <div className="games-info-item">
             <strong>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:'5px'}}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-              Main Per Jam
+              Mulai Dari
             </strong>
-            <span>Rp 10.000</span>
+            <span>Rp 10.000 / Jam</span>
           </div>
           <div className="games-info-divider"/>
           <div className="games-info-item">
             <strong>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:'5px'}}><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-              All Day Play
+              Disewa Harian
             </strong>
-            <span>Rp 30.000</span>
+            <span>Tersedia</span>
           </div>
           <div className="games-info-divider"/>
           <div className="games-info-item">
             <strong>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:'5px'}}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
-              200+ Judul
+              Ratusan Judul
             </strong>
             <span>Tersedia</span>
           </div>
         </div>
 
         <div className="games-grid">
-          {filtered.map(game => (
-            <div key={game.id} className="game-card glass-card game-card--clickable"
-              onClick={() => setRentGame(game)} role="button" tabIndex={0}
-              aria-label={`Sewa ${game.name}`}
-              onKeyDown={e => e.key === 'Enter' && setRentGame(game)}>
-              <div className="game-card__icon-wrap">
-                <CategoryIcon category={game.category} size={30}/>
-              </div>
-              <div className="game-card__body">
-                <div className="game-card__header-row">
-                  <h4 className="game-card__name">{game.name}</h4>
-                  <span className="game-card__difficulty" style={{ color: DIFFICULTY_COLOR[game.difficulty] }}>{game.difficulty}</span>
-                </div>
-                <span className="game-card__category">{game.category}</span>
-                <div className="game-card__meta">
-                  <span className="game-card__meta-item"><Users size={12}/> {game.players}</span>
-                  <span className="game-card__meta-item"><Clock size={12}/> {game.duration}</span>
-                </div>
-                <div className="game-card__rent-hint"><Package size={11}/><span>Tap untuk sewa</span></div>
-              </div>
+          {loading ? (
+            <div className="games-empty" style={{ gridColumn: '1 / -1', display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+              <Loader2 size={24} className="spin-icon" style={{ animation: 'spin 1s linear infinite' }} /> Memuat koleksi game...
             </div>
-          ))}
+          ) : filtered.length === 0 ? (
+            <div className="games-empty" style={{ gridColumn: '1 / -1' }}>
+              <Search size={32} style={{ opacity: 0.4, marginBottom: '8px' }}/>
+              <p>Game tidak ditemukan</p>
+            </div>
+          ) : (
+            filtered.map(game => (
+              <div key={game.id} className="game-card glass-card game-card--clickable"
+                onClick={() => setRentGame(game)} role="button" tabIndex={0}
+                aria-label={`Sewa ${game.name}`}
+                onKeyDown={e => e.key === 'Enter' && setRentGame(game)}>
+                <div className="game-card__icon-wrap">
+                  {game.image_url ? (
+                    <img src={game.image_url} alt={game.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <CategoryIcon category={game.category} size={30}/>
+                  )}
+                </div>
+                <div className="game-card__body">
+                  <div className="game-card__header-row">
+                    <h4 className="game-card__name">{game.name}</h4>
+                    <span className="game-card__difficulty" style={{ color: DIFFICULTY_COLOR[game.difficulty] }}>{game.difficulty}</span>
+                  </div>
+                  <span className="game-card__category">{game.category}</span>
+                  <div className="game-card__meta">
+                    <span className="game-card__meta-item"><Users size={12}/> {game.players}</span>
+                    <span className="game-card__meta-item"><Clock size={12}/> {game.duration}</span>
+                  </div>
+                  <div className="game-card__rent-hint"><Package size={11}/><span>Tap untuk sewa</span></div>
+                </div>
+              </div>
+            ))
+          )}
         </div>
-
-        {filtered.length === 0 && (
-          <div className="games-empty">
-            <Search size={32} style={{ opacity: 0.4, marginBottom: '8px' }}/>
-            <p>Game tidak ditemukan</p>
-          </div>
-        )}
 
         <div className="games-more-hint">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{display:'inline',verticalAlign:'middle',marginRight:'8px',opacity:.6}}><rect x="2" y="3" width="20" height="18" rx="2"/><path d="M8 10h8M8 14h5"/></svg>
-          Masih ada 180+ game lainnya yang tersedia di Loka — datang langsung dan tanyakan ke staff kami!
+          Masih ada ratusan game lainnya yang tersedia di Loka — datang langsung dan tanyakan ke staff kami!
         </div>
       </div>
 
-      {rentGame && <RentalModal game={rentGame} onClose={() => setRentGame(null)}/>}
+      {rentGame && <RentalModal game={rentGame} waNumber={waNumber} rentAwayNote={rentAwayNote} onClose={() => setRentGame(null)}/>}
     </div>
   )
 }

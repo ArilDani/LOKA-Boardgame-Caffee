@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { supabase } from "../lib/supabase";
 import { User, Star, Trophy, CreditCard, Clock, ShoppingBag, LogOut, ChevronRight, Edit2, Save, X } from "lucide-react";
 import "./Profile.css";
 
@@ -11,22 +12,19 @@ const MEMBERSHIP_CONFIG = {
   Platinum: { color: "#e5e4e2", next: null,       needed: null, icon: "💎" },
 };
 
-const API = import.meta.env.VITE_API_URL || "/api";
-
 export default function Profile() {
-  const { user, logout, authFetch, refreshUser } = useAuth();
+  const { user, profile, logout, refreshProfile, updateProfile } = useAuth();
   const navigate = useNavigate();
 
   const [transactions, setTransactions] = useState([]);
-  const [editMode, setEditMode]         = useState(false);
-  const [form, setForm]                 = useState({ name: "", phone: "" });
+  const [form, setForm] = useState({ name: "", phone: "" });
   const [saving, setSaving]             = useState(false);
   const [activeTab, setActiveTab]       = useState("overview");
 
-  useEffect(() => { if (!user) navigate("/login"); window.scrollTo(0,0); }, [user]);
+  useEffect(() => { if (!user) { navigate("/login"); return; } window.scrollTo(0,0); }, [user]);
   useEffect(() => {
-    if (user) { setForm({ name: user.name, phone: user.phone || "" }); }
-  }, [user]);
+    if (profile) { setForm({ name: profile.name || "", phone: profile.phone || "" }); }
+  }, [profile]);
 
   useEffect(() => {
     if (activeTab === "transactions") fetchTransactions();
@@ -34,26 +32,36 @@ export default function Profile() {
 
   const fetchTransactions = async () => {
     try {
-      const res = await authFetch(`${API}/transactions/my`);
-      if (res.ok) setTransactions(await res.json());
+      const { data } = await supabase
+        .from("transactions")
+        .select("*, transaction_items(product_name, qty)")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(20);
+      setTransactions(data || []);
     } catch {}
   };
 
   const saveProfile = async () => {
     setSaving(true);
     try {
-      const res = await authFetch(`${API}/auth/profile`, {
-        method: "PUT", body: JSON.stringify(form)
-      });
-      if (res.ok) { await refreshUser(); setEditMode(false); }
-    } finally { setSaving(false); }
+      await updateProfile({ name: form.name, phone: form.phone });
+      setActiveTab("overview");
+    } catch (err) { alert(err.message); }
+    finally { setSaving(false); }
   };
 
   if (!user) return null;
+  if (!profile) return (
+    <div style={{ minHeight: "80vh", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: "1rem" }}>
+      <div style={{ width: 40, height: 40, border: "3px solid var(--clr-primary)", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+      <p style={{ color: "var(--clr-text-muted)", fontSize: "0.9rem" }}>Memuat profil...</p>
+    </div>
+  );
 
-  const memberConfig = MEMBERSHIP_CONFIG[user.membership] || MEMBERSHIP_CONFIG.Bronze;
-  const nextNeeded   = memberConfig.needed ? memberConfig.needed - user.points : 0;
-  const progress     = memberConfig.needed ? Math.min((user.points / memberConfig.needed) * 100, 100) : 100;
+  const memberConfig = MEMBERSHIP_CONFIG[profile.membership] || MEMBERSHIP_CONFIG.Bronze;
+  const nextNeeded   = memberConfig.needed ? memberConfig.needed - profile.points : 0;
+  const progress     = memberConfig.needed ? Math.min((profile.points / memberConfig.needed) * 100, 100) : 100;
 
   const formatPrice = (n) => new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", minimumFractionDigits: 0 }).format(n);
   const formatDate  = (s) => new Date(s).toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
@@ -67,21 +75,21 @@ export default function Profile() {
         <div className="membership-hero glass-card" style={{ "--mem-color": memberConfig.color }}>
           <div className="membership-hero__left">
             <div className="membership-hero__avatar">
-              {user.name?.[0]?.toUpperCase() || "U"}
+              {profile.name?.[0]?.toUpperCase() || "U"}
             </div>
             <div>
-              <h2 className="membership-hero__name">{user.name}</h2>
+              <h2 className="membership-hero__name">{profile.name}</h2>
               <p className="membership-hero__email">{user.email}</p>
               <div className="membership-badge">
                 <span>{memberConfig.icon}</span>
-                <span>{user.membership} Member</span>
+                <span>{profile.membership} Member</span>
               </div>
             </div>
           </div>
           <div className="membership-hero__right">
             <div className="membership-points">
               <p className="membership-points__label">Total Poin</p>
-              <p className="membership-points__value">{user.points.toLocaleString("id-ID")}</p>
+              <p className="membership-points__value">{(profile.points||0).toLocaleString("id-ID")}</p>
             </div>
             {memberConfig.next && (
               <div className="membership-progress-wrap">
@@ -109,19 +117,19 @@ export default function Profile() {
             <div className="profile-stats-grid">
               <div className="profile-stat glass-card">
                 <div className="profile-stat__icon"><Star size={20}/></div>
-                <div><p className="profile-stat__label">Total Poin</p><p className="profile-stat__value">{user.points.toLocaleString("id-ID")}</p></div>
+                <div><p className="profile-stat__label">Total Poin</p><p className="profile-stat__value">{(profile.points||0).toLocaleString("id-ID")}</p></div>
               </div>
               <div className="profile-stat glass-card">
                 <div className="profile-stat__icon"><CreditCard size={20}/></div>
-                <div><p className="profile-stat__label">Total Belanja</p><p className="profile-stat__value">{formatPrice(user.total_spent)}</p></div>
+                <div><p className="profile-stat__label">Total Belanja</p><p className="profile-stat__value">{formatPrice(profile.total_spent||0)}</p></div>
               </div>
               <div className="profile-stat glass-card">
                 <div className="profile-stat__icon"><Trophy size={20}/></div>
-                <div><p className="profile-stat__label">Membership</p><p className="profile-stat__value">{user.membership}</p></div>
+                <div><p className="profile-stat__label">Membership</p><p className="profile-stat__value">{profile.membership}</p></div>
               </div>
               <div className="profile-stat glass-card">
                 <div className="profile-stat__icon"><Clock size={20}/></div>
-                <div><p className="profile-stat__label">Member Sejak</p><p className="profile-stat__value">{formatDate(user.created_at)}</p></div>
+                <div><p className="profile-stat__label">Member Sejak</p><p className="profile-stat__value">{formatDate(profile.created_at)}</p></div>
               </div>
             </div>
 
@@ -129,11 +137,11 @@ export default function Profile() {
               <h4><Trophy size={16}/> Benefit Membership</h4>
               <div className="benefit-tiers">
                 {Object.entries(MEMBERSHIP_CONFIG).map(([tier, cfg]) => (
-                  <div key={tier} className={`benefit-tier ${user.membership === tier ? "active" : ""}`} style={{ "--tc": cfg.color }}>
+                  <div key={tier} className={`benefit-tier ${profile.membership === tier ? "active" : ""}`} style={{ "--tc": cfg.color }}>
                     <span className="benefit-tier__icon">{cfg.icon}</span>
                     <span className="benefit-tier__name">{tier}</span>
                     <span className="benefit-tier__pts">{tier === "Bronze" ? "0" : tier === "Silver" ? "500" : tier === "Gold" ? "2.000" : "5.000"}+ poin</span>
-                    {user.membership === tier && <span className="benefit-tier__current">✓ Kamu disini</span>}
+                    {profile.membership === tier && <span className="benefit-tier__current">✓ Kamu disini</span>}
                   </div>
                 ))}
               </div>

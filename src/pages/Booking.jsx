@@ -1,6 +1,8 @@
-import { useState } from 'react'
-import { CalendarDays, Users, Clock, Dice6, CheckCircle2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { CalendarDays, Users, Clock, Dice6, CheckCircle2, ShoppingBag } from 'lucide-react'
 import { BOARDGAMES } from '../data/menuData'
+import { useCart } from '../context/CartContext'
+import { supabase } from '../lib/supabase'
 import './Booking.css'
 
 const TIME_SLOTS = ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00']
@@ -11,6 +13,7 @@ function genBookingId() {
 }
 
 export default function Booking() {
+  const { addItem, openCart } = useCart()
   const [step, setStep]   = useState(1)
   const [bookingId]       = useState(genBookingId)
   const [form, setForm]   = useState({
@@ -18,6 +21,14 @@ export default function Booking() {
     guests: 2, games: [], notes: ''
   })
   const [errors, setErrors] = useState({})
+  const [waNumber, setWaNumber] = useState('6281234567890') // default, will be overridden
+
+  useEffect(() => {
+    supabase.from('settings').select('value').eq('key', 'whatsapp_number').single()
+      .then(({ data }) => {
+        if (data?.value) setWaNumber(data.value)
+      })
+  }, [])
 
   const handleChange = e => {
     const { name, value } = e.target
@@ -47,11 +58,31 @@ export default function Booking() {
     e.preventDefault()
     const errs = validate()
     if (Object.keys(errs).length) { setErrors(errs); return }
-    setStep(2)
+    
+    const selectedGamesText = form.games.length > 0 
+      ? ` + Game: ${BOARDGAMES.filter(g => form.games.includes(g.id)).map(g => g.name).join(', ')}` 
+      : ''
+
+    const item = {
+      id: `booking-${Date.now()}`,
+      name: `Booking: ${form.date} pkl ${form.time} (${form.guests} Org)${selectedGamesText}`,
+      price: 0,
+      qty: 1,
+      icon: 'Clock',
+    }
+    
+    addItem(item)
+    // Optional: Reset form after adding
+    setForm({ name: '', phone: '', date: '', time: '', duration: '2 Jam', guests: 2, games: [], notes: '' })
   }
 
   const selectedGames = BOARDGAMES.filter(g => form.games.includes(g.id))
   const today = new Date().toISOString().split('T')[0]
+
+  const askAdminWa = () => {
+    const text = encodeURIComponent(`Halo Admin Loka, saya ingin bertanya tentang ketersediaan meja untuk booking:\n\nTanggal: ${form.date || '-'}\nJam: ${form.time || '-'}\nJumlah Orang: ${form.guests}\n\nApakah masih tersedia?`)
+    window.open(`https://wa.me/${waNumber}?text=${text}`, '_blank', 'noopener,noreferrer')
+  }
 
   return (
     <div className="booking-page">
@@ -144,9 +175,14 @@ export default function Booking() {
                   value={form.notes} onChange={handleChange} />
               </div>
 
-              <button id="booking-submit-btn" type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }}>
-                <CalendarDays size={18} /> Konfirmasi Booking
-              </button>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button id="booking-submit-btn" type="submit" className="btn btn-primary btn-lg" style={{ flex: 1 }}>
+                  <ShoppingBag size={18} /> Tambahkan ke Keranjang
+                </button>
+                <button type="button" className="btn btn-secondary btn-lg" onClick={askAdminWa} style={{ padding: '0 1.5rem' }}>
+                  Tanya Admin (WA)
+                </button>
+              </div>
             </form>
 
             {/* Game selection sidebar */}
@@ -184,42 +220,6 @@ export default function Booking() {
                 })}
               </div>
             </aside>
-          </div>
-        )}
-
-        {/* ── SUCCESS ── */}
-        {step === 2 && (
-          <div className="booking-success">
-            <div className="booking-success-icon">🎉</div>
-            <h2>Booking <span className="gradient-text">Berhasil!</span></h2>
-            <p>Kami sudah menerima reservasimu. Tim Loka akan konfirmasi via WhatsApp sesegera mungkin.</p>
-
-            <div className="booking-id-card glass-card">
-              <p className="booking-id-label">Booking ID</p>
-              <p className="booking-id-num">{bookingId}</p>
-            </div>
-
-            <div className="booking-detail-card glass-card">
-              <div className="booking-detail-row"><span>👤 Nama</span><strong>{form.name}</strong></div>
-              <div className="booking-detail-row"><span>📅 Tanggal</span><strong>{form.date}</strong></div>
-              <div className="booking-detail-row"><span>🕐 Jam</span><strong>{form.time} WIB</strong></div>
-              <div className="booking-detail-row"><span>⏱️ Durasi</span><strong>{form.duration}</strong></div>
-              <div className="booking-detail-row"><span>👥 Orang</span><strong>{form.guests} orang</strong></div>
-              {selectedGames.length > 0 && (
-                <div className="booking-detail-row">
-                  <span>🎲 Game</span>
-                  <strong>{selectedGames.map(g => g.name).join(', ')}</strong>
-                </div>
-              )}
-            </div>
-
-            <div className="booking-success-note">
-              <p>📱 Konfirmasi akan dikirim ke WhatsApp <strong>{form.phone}</strong></p>
-            </div>
-
-            <button className="btn btn-primary btn-lg" onClick={() => { setStep(1); setForm({ name:'', phone:'', date:'', time:'', duration:'2 Jam', guests:2, games:[], notes:'' }) }}>
-              Buat Booking Baru
-            </button>
           </div>
         )}
       </div>

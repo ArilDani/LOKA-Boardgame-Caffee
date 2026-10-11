@@ -1,15 +1,16 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { ShoppingCart, Menu, X, Dice6, User, LogOut, Shield, Trophy, ChevronDown } from "lucide-react";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useSectionSettings } from "../lib/sectionSettings";
 import "./Navbar.css";
 
 const MEMBERSHIP_COLOR = { Bronze:"#cd7f32", Silver:"#c0c0c0", Gold:"#ffd700", Platinum:"#e5e4e2" };
 
 export default function Navbar() {
   const { totalItems, toggleCart } = useCart();
-  const { user, logout, isAdmin }  = useAuth();
+  const { user, profile, logout, isAdmin } = useAuth();
   const [scrolled,   setScrolled]  = useState(false);
   const [menuOpen,   setMenuOpen]  = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -21,12 +22,15 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  const sectionSettings = useSectionSettings();
+
   const links = [
-    { to: "/",        label: "Home" },
-    { to: "/about",   label: "About" },
-    { to: "/menu",    label: "Menu" },
-    { to: "/games",   label: "Games" },
-    { to: "/booking", label: "Booking" },
+    { to: "/",          label: "Home" },
+    { to: "/about",     label: "About" },
+    { to: "/menu",      label: "Menu" },
+    { to: "/games",     label: "Games" },
+    { to: "/booking",   label: "Booking" },
+    ...(sectionSettings.membership ? [{ to: "/membership", label: "Membership", badge: "Soon" }] : []),
   ];
 
   const handleLogout = () => { logout(); setUserMenuOpen(false); navigate("/"); };
@@ -50,6 +54,7 @@ export default function Navbar() {
               <li key={l.to}>
                 <NavLink to={l.to} end={l.to === "/"} className={({ isActive }) => `navbar__link ${isActive ? "navbar__link--active" : ""}`}>
                   {l.label}
+                  {l.badge && <span style={{ fontSize:'0.6rem', background:'var(--clr-primary)', color:'#0d1117', borderRadius:'999px', padding:'1px 6px', marginLeft:'4px', fontWeight:700, verticalAlign:'middle' }}>{l.badge}</span>}
                 </NavLink>
               </li>
             ))}
@@ -68,10 +73,10 @@ export default function Navbar() {
                 <button
                   className="navbar__user-btn btn btn-ghost btn-sm"
                   onClick={() => setUserMenuOpen(v => !v)}
-                  style={{ "--mem-clr": MEMBERSHIP_COLOR[user.membership] || "var(--clr-primary)" }}
+                  style={{ "--mem-clr": MEMBERSHIP_COLOR[profile?.membership] || "var(--clr-primary)" }}
                 >
-                  <div className="navbar__user-avatar">{user.name?.[0]}</div>
-                  <span className="navbar__user-name">{user.name.split(" ")[0]}</span>
+                  <div className="navbar__user-avatar">{(profile?.name || user.email)?.[0]?.toUpperCase()}</div>
+                  <span className="navbar__user-name">{(profile?.name || user.email)?.split(" ")[0]}</span>
                   <ChevronDown size={14}/>
                 </button>
 
@@ -80,10 +85,10 @@ export default function Navbar() {
                     <div className="navbar__user-backdrop" onClick={() => setUserMenuOpen(false)} />
                     <div className="navbar__user-dropdown">
                       <div className="navbar__user-header">
-                        <div className="navbar__user-avatar navbar__user-avatar--lg">{user.name?.[0]}</div>
+                        <div className="navbar__user-avatar navbar__user-avatar--lg">{(profile?.name || user.email)?.[0]?.toUpperCase()}</div>
                         <div>
-                          <p style={{ fontWeight:600, color:"var(--clr-text)", fontSize:"0.9rem" }}>{user.name}</p>
-                          <p style={{ fontSize:"0.75rem", color:MEMBERSHIP_COLOR[user.membership] }}>{user.membership} Member · {user.points} poin</p>
+                          <p style={{ fontWeight:600, color:"var(--clr-text)", fontSize:"0.9rem" }}>{profile?.name || user.email}</p>
+                          <p style={{ fontSize:"0.75rem", color:MEMBERSHIP_COLOR[profile?.membership] }}>{profile?.membership} Member · {profile?.points || 0} poin</p>
                         </div>
                       </div>
                       <div className="navbar__user-divider"/>

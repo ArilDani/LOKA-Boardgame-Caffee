@@ -1,0 +1,174 @@
+/* ============================================================
+   INSTAGRAM SECTION STYLES
+   ============================================================ */
+
+.instagram-section {
+  padding-block: var(--space-3xl);
+  background: linear-gradient(180deg, transparent, rgba(200,150,62,0.04), transparent);
+}
+
+.insta-profile {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: var(--clr-surface);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-xl);
+  position: relative;
+  overflow: hidden;
+}
+.insta-profile::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(200,150,62,0.05), transparent);
+  pointer-events: none;
+}
+
+.insta-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.insta-avatar-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  padding: 3px;
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+}
+.insta-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: var(--clr-bg-3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--clr-bg);
+  overflow: hidden;
+}
+.insta-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.insta-info { flex: 1 }
+.insta-handle {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+.insta-handle svg { color: var(--clr-primary); }
+.insta-name { font-size: 0.85rem; color: var(--clr-text-muted); margin-bottom: 0.75rem; }
+.insta-stats {
+  display: flex;
+  gap: 1.5rem;
+}
+.insta-stat-item { text-align: center; }
+.insta-stat-num  { font-size: 1rem; font-weight: 700; color: var(--clr-text); display: block; }
+.insta-stat-lbl  { font-size: 0.72rem; color: var(--clr-text-dim); }
+
+.insta-follow-btn {
+  background: linear-gradient(135deg, #f09433, #e6683c, #dc2743);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-full);
+  padding: 0.6rem 1.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-base);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+.insta-follow-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(220,39,67,0.4); }
+
+/* Post grid */
+.insta-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.insta-post {
+  position: relative;
+  aspect-ratio: 1;
+  overflow: hidden;
+  cursor: pointer;
+  background: var(--clr-bg-3);
+}
+.insta-post img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+.insta-post:hover img { transform: scale(1.08); }
+
+.insta-post__overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.insta-post:hover .insta-post__overlay { opacity: 1; }
+.insta-post__overlay span {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Placeholder posts for when embed not available */
+.insta-placeholder-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.insta-placeholder-item {
+  aspect-ratio: 1;
+  background: linear-gradient(135deg, var(--clr-bg-2), var(--clr-bg-3));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--clr-border);
+}
+
+.insta-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+/* Embed widget container */
+.insta-embed-wrap {
+  width: 100%;
+  min-height: 300px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+@media (max-width: 640px) {
+  .insta-profile { flex-wrap: wrap; }
+  .insta-follow-btn { width: 100%; justify-content: center; }
+  .insta-grid { grid-template-columns: repeat(3, 1fr); }
+}

@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useCart } from '../context/CartContext'
-import {
-  FOOD_ITEMS, DRINK_NON_COFFEE, DRINK_COFFEE, PLAY_PACKAGES, formatPrice
-} from '../data/menuData'
-import { ShoppingCart, Search, Filter, Utensils, Coffee, CupSoda, Dices, Clock } from 'lucide-react'
+import { formatPrice } from '../data/menuData'
+import { supabase } from '../lib/supabase'
+import { ShoppingCart, Search, Filter, Utensils, Coffee, CupSoda, Dices, Clock, Loader2 } from 'lucide-react'
 import './Menu.css'
 
 const TABS = [
@@ -14,29 +13,24 @@ const TABS = [
   { id: 'play',      label: 'Paket Main', icon: <Dices size={16} /> },
 ]
 
-const ALL = [
-  ...FOOD_ITEMS,
-  ...DRINK_NON_COFFEE,
-  ...DRINK_COFFEE,
-  ...PLAY_PACKAGES,
-]
-
 function ItemCard({ item }) {
   const { addItem } = useCart()
   const [added, setAdded] = useState(false)
 
   const handleAdd = () => {
-    addItem(item)
+    // Make sure we pass image_url as image for CartContext consistency
+    addItem({ ...item, image: item.image_url })
     setAdded(true)
     setTimeout(() => setAdded(false), 1200)
   }
 
   const renderVisual = () => {
-    if (item.image) {
-      return <img src={item.image} alt={item.name} className="item-card__image" />
+    if (item.image_url) {
+      return <img src={item.image_url} alt={item.name} className="item-card__image" />
     }
-    if (item.icon === 'Clock') return <Clock size={48} className="item-card__icon" />
-    if (item.icon === 'Dices') return <Dices size={48} className="item-card__icon" />
+    if (item.category === 'play') return <Dices size={48} className="item-card__icon" />
+    if (item.category === 'coffee') return <Coffee size={48} className="item-card__icon" />
+    if (item.category === 'non-coffee') return <CupSoda size={48} className="item-card__icon" />
     return <Utensils size={48} className="item-card__icon" />
   }
 
@@ -71,10 +65,27 @@ function ItemCard({ item }) {
 export default function Menu() {
   const [activeTab, setActiveTab] = useState('all')
   const [search, setSearch]       = useState('')
+  const [products, setProducts]   = useState([])
+  const [loading, setLoading]     = useState(true)
 
-  useEffect(() => { window.scrollTo(0, 0) }, [])
+  const loadProducts = useCallback(async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_available', true)
+      .order('category')
+      .order('name')
+    setProducts(data || [])
+    setLoading(false)
+  }, [])
 
-  const filtered = ALL.filter(item => {
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    loadProducts()
+  }, [loadProducts])
+
+  const filtered = products.filter(item => {
     const matchTab    = activeTab === 'all' || item.category === activeTab
     const matchSearch = item.name.toLowerCase().includes(search.toLowerCase())
     return matchTab && matchSearch
@@ -122,7 +133,11 @@ export default function Menu() {
         </div>
 
         {/* Grid */}
-        {filtered.length === 0 ? (
+        {loading ? (
+          <div className="menu-empty" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'center' }}>
+            <Loader2 size={24} className="spin-icon" style={{ animation: 'spin 1s linear infinite' }} /> Memuat menu...
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="menu-empty">
             <p>🔍 Tidak ada menu yang cocok.</p>
           </div>

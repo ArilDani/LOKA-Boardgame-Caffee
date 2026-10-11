@@ -1,69 +1,162 @@
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
+import { supabase } from "../lib/supabase";
+
+// ============================================================
+// LOKA BOARDGAME CAFE — Auth Context (Supabase)
+// ============================================================
 
 const AuthContext = createContext(null);
-const API = import.meta.env.VITE_API_URL || "/api";
 
 export function AuthProvider({ children }) {
   const [user,    setUser]    = useState(null);
-  const [token,   setToken]   = useState(() => localStorage.getItem("loka_token"));
+  const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [profileError, setProfileError] = useState(null);
 
-  // Fetch current user from token
-  const fetchMe = useCallback(async (tkn) => {
-    if (!tkn) { setLoading(false); return; }
+  // ── Fetch profile — read-only path, NEVER overwrites existing rows
+  const fetchProfile = useCallback(async (userId) => {
+    if (!userId) return null;
     try {
-      const res = await fetch(`${API}/auth/me`, { headers: { Authorization: `Bearer ${tkn}` } });
-      if (res.ok) { setUser(await res.json()); }
-      else { localStorage.removeItem("loka_token"); setToken(null); }
-    } catch { localStorage.removeItem("loka_token"); setToken(null); }
-    finally { setLoading(false); }
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      // Profile found — return it (respects role from DB, including admin)
+      if (data) return data;
+
+      // PGRST116 = no row → insert a DEFAULT profile for brand-new users
+      // ignoreDuplicates: true = NEVER overwrite an existing row (safe for admins)
+      if (error?.code === "PGRST116") {
+        await supabase
+          .from("profiles")
+          .upsert(
+            { id: userId, role: "user", points: 0, total_spent: 0, membership: "Bronze" },
+            { onConflict: "id", ignoreDuplicates: true }
+          );
+        const { data: fresh } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", userId)
+          .single();
+        return fresh || null;
+      }
+
+      console.error("fetchProfile error:", error);
+      setProfileError(JSON.stringify(error));
+      return null;
+    } catch (err) {
+      console.error("fetchProfile exception:", err);
+      setProfileError(err.message);
+      return null;
+    }
   }, []);
 
-  useEffect(() => { fetchMe(token); }, [token, fetchMe]);
+  // ── Listen to Supabase auth state changes
+  useEffect(() => {
+    setLoading(true);
 
+    // On every page load: always re-fetch fresh profile from DB
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (session?.user) {
+        setUser(session.user);
+        const prof = await fetchProfile(session.user.id);
+        setProfile(prof);
+      } else {
+        setUser(null);
+        setProfile(null);
+      }
+      setLoading(false);
+    });
+
+    // Subscribe to auth events
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          setUser(session.user);
+          const prof = await fetchProfile(session.user.id);
+          setProfile(prof);
+          setLoading(false);
+        } else if (event === "SIGNED_OUT") {
+          setUser(null);
+          setProfile(null);
+          setLoading(false);
+        }
+        // INITIAL_SESSION handled by getSession() above
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, [fetchProfile]);
+
+  // ── Login
   const login = async (email, password) => {
-    const res = await fetch(`${API}/auth/login`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Login gagal");
-    localStorage.setItem("loka_token", data.token);
-    setToken(data.token);
-    setUser(data.user);
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
     return data.user;
   };
 
+  // ── Register (sends confirmation email)
   const register = async (name, email, password, phone) => {
-    const res = await fetch(`${API}/auth/register`, {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, email, password, phone }),
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name, phone },
+        emailRedirectTo: `${window.location.origin}/`,
+      },
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.message || "Registrasi gagal");
-    localStorage.setItem("loka_token", data.token);
-    setToken(data.token);
-    setUser(data.user);
+    if (error) throw new Error(error.message);
     return data.user;
   };
 
-  const logout = () => {
-    localStorage.removeItem("loka_token");
-    setToken(null);
+  // ── Logout
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
+    setProfile(null);
   };
 
-  const refreshUser = () => fetchMe(token);
+  // ── Force refresh profile from DB
+  const refreshProfile = useCallback(async () => {
+    if (!user?.id) return;
+    const prof = await fetchProfile(user.id);
+    setProfile(prof);
+  }, [user, fetchProfile]);
 
-  const authFetch = useCallback((url, options = {}) => {
-    return fetch(url, {
-      ...options,
-      headers: { "Content-Type": "application/json", ...(options.headers || {}), Authorization: `Bearer ${token}` },
-    });
-  }, [token]);
+  // ── Update profile
+  const updateProfile = async (updates) => {
+    if (!user?.id) return;
+    const { error } = await supabase
+      .from("profiles")
+      .update({ ...updates })
+      .eq("id", user.id);
+    if (error) throw new Error(error.message);
+    await refreshProfile();
+  };
+
+  const isAdmin         = profile?.role === "admin";
+  const isEmailVerified = !!user?.email_confirmed_at;
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, refreshUser, authFetch, isAdmin: user?.role === "admin" }}>
+    <AuthContext.Provider value={{
+      user,
+      profile,
+      loading,
+      login,
+      register,
+      logout,
+      refreshProfile,
+      updateProfile,
+      isAdmin,
+      isEmailVerified,
+    }}>
+      {profileError && (
+        <div style={{ background: "red", color: "white", padding: "10px", zIndex: 9999, position: "fixed", top: 0, left: 0, right: 0 }}>
+          PROFILE FETCH ERROR: {profileError}
+        </div>
+      )}
       {children}
     </AuthContext.Provider>
   );

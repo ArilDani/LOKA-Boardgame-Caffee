@@ -1,0 +1,253 @@
+/* ============================================================
+   MEMBERSHIP PAGE STYLES
+   ============================================================ */
+
+.membership-page { min-height: 100vh; }
+
+/* ── HERO ─────────────────────────────────────────── */
+.membership-hero {
+  position: relative;
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  padding-block: 6rem 4rem;
+}
+.membership-hero__bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(200,150,62,0.2), transparent 60%),
+    radial-gradient(ellipse 50% 40% at 80% 80%, rgba(45,106,79,0.12), transparent 60%);
+}
+.membership-hero__glow {
+  position: absolute;
+  width: 600px; height: 600px;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  background: radial-gradient(circle, rgba(200,150,62,0.06), transparent 60%);
+  pointer-events: none;
+}
+.membership-hero__content {
+  position: relative; z-index: 2;
+  display: flex; flex-direction: column;
+  gap: 1.25rem;
+}
+.membership-hero__content h1 { text-align: left; }
+.membership-hero__sub {
+  max-width: 520px;
+  color: var(--clr-text-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+.membership-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(200,150,62,0.15);
+  border: 1px solid rgba(200,150,62,0.35);
+  color: var(--clr-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-full);
+  width: fit-content;
+}
+.membership-cs-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(45,106,79,0.15);
+  border: 1px solid rgba(45,106,79,0.3);
+  color: var(--clr-accent-2);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-full);
+  width: fit-content;
+}
+.membership-cs-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: var(--clr-accent-2);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Floating icons */
+.membership-hero__floats { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.membership-float {
+  position: absolute;
+  font-size: 2.5rem;
+  opacity: 0.18;
+  animation: float 5s ease-in-out infinite;
+}
+.membership-float--1 { top: 15%; right: 8%;  animation-delay: 0s; }
+.membership-float--2 { top: 40%; right: 20%; animation-delay: 1.5s; font-size: 1.8rem; }
+.membership-float--3 { top: 65%; right: 10%; animation-delay: 0.8s; font-size: 3rem; }
+.membership-float--4 { top: 25%; right: 35%; animation-delay: 2.2s; font-size: 2rem; }
+
+/* ── TIER GRID ────────────────────────────────────── */
+.tier-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.25rem;
+}
+.tier-card {
+  display: flex;
+  flex-direction: column;
+  padding: 1.75rem 1.25rem;
+  gap: 1rem;
+  border-radius: var(--radius-lg);
+  position: relative;
+  overflow: hidden;
+  background: var(--tc-bg, rgba(255,255,255,0.04)) !important;
+  border-color: var(--tc-border, rgba(255,255,255,0.08)) !important;
+  transition: all var(--transition-base);
+}
+.tier-card:hover { transform: translateY(-8px); box-shadow: var(--shadow-lg); }
+.tier-card--active {
+  box-shadow: 0 0 0 2px var(--tc-border), var(--shadow-lg);
+}
+.tier-card__current-badge {
+  position: absolute;
+  top: 0.75rem; right: 0.75rem;
+  background: var(--clr-primary);
+  color: #0d1117;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  text-transform: uppercase;
+}
+.tier-card__icon { font-size: 2.5rem; line-height: 1; }
+.tier-card__name { font-size: 1.3rem; font-weight: 700; margin-bottom: 0; }
+.tier-card__points {
+  display: flex; flex-direction: column; gap: 0.1rem;
+}
+.tier-card__pts-num { font-size: 1.5rem; font-weight: 700; color: var(--clr-text); line-height: 1; }
+.tier-card__pts-lbl { font-size: 0.72rem; color: var(--clr-text-dim); }
+
+.tier-card__benefits { flex: 1; display: flex; flex-direction: column; gap: 0.5rem; }
+.tier-benefit {
+  display: flex; align-items: flex-start; gap: 0.5rem;
+  font-size: 0.82rem; color: var(--clr-text-muted); line-height: 1.4;
+}
+.tier-card__footer { margin-top: auto; }
+.tier-card__lock {
+  display: flex; align-items: center; gap: 0.4rem;
+  font-size: 0.75rem; color: var(--clr-text-dim);
+  opacity: 0.7;
+}
+
+/* ── HOW IT WORKS ─────────────────────────────────── */
+.membership-how { background: linear-gradient(180deg, transparent, rgba(45,106,79,0.05), transparent); }
+.how-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+}
+.how-step {
+  padding: 1.5rem;
+  display: flex; flex-direction: column; gap: 0.75rem;
+  text-align: center; align-items: center;
+  position: relative;
+}
+.how-step__num {
+  font-size: 0.7rem; font-weight: 800;
+  letter-spacing: 0.15em;
+  color: var(--clr-primary);
+  opacity: 0.7;
+}
+.how-step__icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(200,150,62,0.15), rgba(45,106,79,0.1));
+  border: 1px solid rgba(200,150,62,0.2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--clr-primary);
+}
+
+/* ── STATUS CARD ──────────────────────────────────── */
+.membership-status {
+  background: linear-gradient(135deg, rgba(200,150,62,0.08), rgba(45,106,79,0.05));
+  border: 1px solid rgba(200,150,62,0.2);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.membership-status__header {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(200,150,62,0.15);
+  background: rgba(200,150,62,0.05);
+}
+.membership-status__header h3 { font-size: 1rem; color: var(--clr-text); margin: 0; }
+.membership-status__body {
+  display: flex; align-items: center; gap: 2rem; flex-wrap: wrap;
+  padding: 1.5rem;
+}
+.membership-status__tier { display: flex; align-items: center; gap: 1rem; }
+.membership-status__points {
+  display: flex; flex-direction: column; align-items: center;
+  min-width: 100px;
+}
+.membership-status__pts {
+  font-size: 2rem; font-weight: 800;
+  background: linear-gradient(135deg, var(--clr-primary-light), var(--clr-primary));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  line-height: 1;
+}
+.membership-status__next { flex: 1; min-width: 200px; display: flex; flex-direction: column; gap: 0.5rem; }
+.membership-progress {
+  height: 6px;
+  background: var(--clr-border);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.membership-progress__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--clr-primary), var(--clr-primary-light));
+  border-radius: var(--radius-full);
+  transition: width 1s ease;
+}
+
+/* ── WAITLIST CTA ─────────────────────────────────── */
+.membership-cta-section { background: linear-gradient(180deg, transparent, rgba(200,150,62,0.04)); }
+.membership-cta-box {
+  position: relative;
+  border: 1px solid rgba(200,150,62,0.2);
+  border-radius: var(--radius-xl);
+  padding: 4rem;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 1.25rem;
+  overflow: hidden;
+}
+.membership-cta-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(200,150,62,0.1), transparent 70%);
+  pointer-events: none;
+}
+.membership-waitlist-form {
+  display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;
+  justify-content: center;
+  position: relative; z-index: 1;
+}
+.membership-joined {
+  display: flex; align-items: center; gap: 0.75rem;
+  color: var(--clr-accent-2);
+  font-weight: 600;
+}
+
+/* ── RESPONSIVE ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .tier-grid  { grid-template-columns: repeat(2, 1fr); }
+  .how-steps  { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
+  .tier-grid  { grid-template-columns: 1fr; }
+  .how-steps  { grid-template-columns: 1fr; }
+  .membership-cta-box { padding: 2rem 1.25rem; }
+  .membership-hero { padding-block: 5rem 3rem; }
+  .membership-status__body { flex-direction: column; align-items: flex-start; }
+}

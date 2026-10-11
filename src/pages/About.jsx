@@ -1,6 +1,8 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MapPin, Clock, Phone, Instagram, Users, Heart, Dice6, Dices, Coffee, Store, UtensilsCrossed } from 'lucide-react'
+import { MapPin, Clock, Phone, Instagram, Users, Heart, Dice6, Dices, Coffee, Store, UtensilsCrossed, BookOpen, ArrowRight } from 'lucide-react'
+import BlogSection from '../components/BlogSection'
+import { useSectionSettings } from '../lib/sectionSettings'
 import './About.css'
 
 const TEAM_VALUES = [
@@ -12,16 +14,27 @@ const TEAM_VALUES = [
 
 export default function About() {
   const navigate = useNavigate()
+  const sectionSettings = useSectionSettings()
 
   useEffect(() => {
     window.scrollTo(0, 0)
-    const els = document.querySelectorAll('.reveal')
     const obs = new IntersectionObserver(
       entries => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible') }),
       { threshold: 0.1 }
     )
-    els.forEach(el => obs.observe(el))
-    return () => obs.disconnect()
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+    
+    const mut = new MutationObserver(mutations => {
+      mutations.forEach(m => m.addedNodes.forEach(node => {
+        if (node.nodeType === 1) {
+          if (node.classList.contains('reveal')) obs.observe(node)
+          node.querySelectorAll('.reveal').forEach(el => obs.observe(el))
+        }
+      }))
+    })
+    mut.observe(document.body, { childList: true, subtree: true })
+    
+    return () => { obs.disconnect(); mut.disconnect(); }
   }, [])
 
   return (
@@ -115,6 +128,32 @@ export default function About() {
         </div>
       </section>
 
+      {/* ── ARTIKEL BLOG ── */}
+      {sectionSettings.blog && (
+        <section className="section about-blog">
+          <div className="container">
+            <div className="section-header reveal" style={{ textAlign: 'center', alignItems: 'center', display: 'flex', flexDirection: 'column' }}>
+              <span className="section-label"><BookOpen size={12} />Blog & Cerita</span>
+              <h2>Tulisan dari <span className="gradient-text">Komunitas Loka</span></h2>
+              <p className="section-subtitle" style={{ textAlign: 'center' }}>
+                Baca artikel, tips bermain, dan cerita seru yang kami tulis untuk komunitas Loka.
+              </p>
+            </div>
+            <BlogSection limit={3} />
+            <div style={{ textAlign: 'center', marginTop: '2rem' }} className="reveal">
+              <a
+                href="https://arutiaa.blogspot.com/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="btn btn-secondary btn-lg"
+              >
+                Baca Semua di Blog <ArrowRight size={18} />
+              </a>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ── INFO ── */}
       <section className="section about-info">
         <div className="container about-info__inner">
@@ -146,7 +185,7 @@ export default function About() {
                 <Phone size={16} />
                 <div>
                   <p>+62 812-3456-7890</p>
-                  <p className="about-info__sub">WhatsApp & Telepon</p>
+                  <p className="about-info__sub">WhatsApp &amp; Telepon</p>
                 </div>
               </li>
               <li>

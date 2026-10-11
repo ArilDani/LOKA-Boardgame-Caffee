@@ -328,3 +328,8 @@ p  { font-size: 0.95rem; color: var(--clr-text-muted); }
 @media (max-width: 480px) {
   .container { padding-inline: var(--space-md); }
 }
+
+/* --- Global Keyframes --- */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
