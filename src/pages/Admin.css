@@ -380,4 +380,35 @@
   cursor: not-allowed;
 }
 
+/* User Management Table Controls */
+.user-role-select,
+.user-membership-select {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  font-family: var(--font-body);
+  transition: all 0.2s ease;
+}
+
+.user-role-select:focus,
+.user-membership-select:focus {
+  box-shadow: 0 0 0 2px rgba(200, 150, 62, 0.4);
+}
+
+.user-role-select option,
+.user-membership-select option {
+  background: #181920;
+  color: #f1f2f6;
+  padding: 6px;
+}
+
+.user-action-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 

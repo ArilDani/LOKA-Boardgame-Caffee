@@ -1591,43 +1591,513 @@ function PaymentsPanel() {
 }
 
 // ══════════════════════════════════════════════════════
-// USERS PANEL
+// USERS PANEL — Manage Roles, Memberships, & Accounts
 // ══════════════════════════════════════════════════════
+const MEMBERSHIP_TIERS = ["Bronze", "Silver", "Gold", "Platinum"];
+const TIER_COLORS = {
+  Bronze: "#cd7f32",
+  Silver: "#c0c0c0",
+  Gold: "#ffd700",
+  Platinum: "#e5e4e2"
+};
+const TIER_ICONS = {
+  Bronze: "🥉",
+  Silver: "🥈",
+  Gold: "🥇",
+  Platinum: "💎"
+};
+
 function UsersPanel() {
+  const { user: currentAdmin } = useAuth();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [updatingId, setUpdatingId] = useState(null);
+  const [editModalUser, setEditModalUser] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    phone: "",
+    role: "user",
+    membership: "Bronze",
+    points: 0,
+    total_spent: 0
+  });
+  const [savingUser, setSavingUser] = useState(false);
+  const [feedback, setFeedback] = useState(null);
 
-  useEffect(() => {
-    supabase.from("profiles").select("*").order("created_at", { ascending: false })
-      .then(({ data }) => { setUsers(data || []); setLoading(false); });
+  const loadUsers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (err) {
+      console.error("Gagal memuat pengguna:", err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const filtered = users.filter(u => u.name?.toLowerCase().includes(search.toLowerCase()) || u.membership?.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    loadUsers();
+  }, [loadUsers]);
+
+  // Flash feedback timer
+  useEffect(() => {
+    if (!feedback) return;
+    const t = setTimeout(() => setFeedback(null), 4000);
+    return () => clearTimeout(t);
+  }, [feedback]);
+
+  // ── Quick Change Role
+  const handleRoleChange = async (u, newRole) => {
+    if (u.id === currentAdmin?.id && newRole !== "admin") {
+      alert("⚠️ Anda tidak dapat mencabut role Admin dari akun Anda sendiri!");
+      return;
+    }
+    if (!confirm(`Ubah role "${u.name || "User"}" menjadi "${newRole.toUpperCase()}"?`)) return;
+
+    setUpdatingId(u.id);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role: newRole })
+        .eq("id", u.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, role: newRole } : x));
+      setFeedback({ type: "success", text: `Role "${u.name || "User"}" berhasil diubah menjadi ${newRole.toUpperCase()}.` });
+    } catch (err) {
+      alert("Gagal mengubah role: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // ── Quick Change Membership
+  const handleMembershipChange = async (u, newMembership) => {
+    setUpdatingId(u.id);
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ membership: newMembership })
+        .eq("id", u.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.map(x => x.id === u.id ? { ...x, membership: newMembership } : x));
+      setFeedback({ type: "success", text: `Membership "${u.name || "User"}" berhasil diubah menjadi ${newMembership}.` });
+    } catch (err) {
+      alert("Gagal mengubah membership: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // ── Delete User
+  const handleDeleteUser = async (u) => {
+    if (u.id === currentAdmin?.id) {
+      alert("⚠️ Anda tidak dapat menghapus akun Anda sendiri!");
+      return;
+    }
+    if (!confirm(`Apakah Anda yakin ingin menghapus pengguna "${u.name || "User"}"?\n\nTindakan ini permanen dan akan menghapus profil pengguna dari database.`)) {
+      return;
+    }
+
+    setUpdatingId(u.id);
+    try {
+      // Putuskan relasi ke transaksi agar tidak terkena Foreign Key error
+      await supabase.from("transactions").update({ user_id: null }).eq("user_id", u.id);
+      
+      // Hapus row profil
+      const { error } = await supabase.from("profiles").delete().eq("id", u.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.filter(x => x.id !== u.id));
+      if (editModalUser?.id === u.id) setEditModalUser(null);
+      setFeedback({ type: "success", text: `Pengguna "${u.name || "User"}" berhasil dihapus.` });
+    } catch (err) {
+      alert("Gagal menghapus pengguna: " + err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  // ── Open Edit Modal
+  const openEditModal = (u) => {
+    setEditModalUser(u);
+    setEditForm({
+      name: u.name || "",
+      phone: u.phone || "",
+      role: u.role || "user",
+      membership: u.membership || "Bronze",
+      points: u.points || 0,
+      total_spent: u.total_spent || 0
+    });
+  };
+
+  // ── Save from Edit Modal
+  const saveEditModal = async () => {
+    if (!editModalUser) return;
+    if (editModalUser.id === currentAdmin?.id && editForm.role !== "admin") {
+      alert("⚠️ Anda tidak dapat mencabut role Admin dari akun Anda sendiri!");
+      return;
+    }
+
+    setSavingUser(true);
+    try {
+      const payload = {
+        name: editForm.name.trim() || "User",
+        phone: editForm.phone.trim(),
+        role: editForm.role,
+        membership: editForm.membership,
+        points: Number(editForm.points) || 0,
+        total_spent: Number(editForm.total_spent) || 0
+      };
+
+      const { error } = await supabase
+        .from("profiles")
+        .update(payload)
+        .eq("id", editModalUser.id);
+      if (error) throw error;
+
+      setUsers(prev => prev.map(x => x.id === editModalUser.id ? { ...x, ...payload } : x));
+      setFeedback({ type: "success", text: `Perubahan pengguna "${payload.name}" berhasil disimpan.` });
+      setEditModalUser(null);
+    } catch (err) {
+      alert("Gagal menyimpan perubahan: " + err.message);
+    } finally {
+      setSavingUser(false);
+    }
+  };
+
+  const filtered = users.filter(u =>
+    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    u.membership?.toLowerCase().includes(search.toLowerCase()) ||
+    u.role?.toLowerCase().includes(search.toLowerCase()) ||
+    u.phone?.includes(search)
+  );
 
   return (
     <div>
-      <div className="panel-toolbar">
-        <div className="search-wrap"><Search size={16} /><input className="form-input search-input" placeholder="Cari nama / membership..." value={search} onChange={e => setSearch(e.target.value)} /></div>
-        <button className="btn btn-secondary btn-sm" onClick={() => exportToCSV(`Pengguna_${new Date().toISOString().slice(0,10)}.csv`, users)}><Download size={14} /> Export CSV</button>
+      {/* Feedback Banner */}
+      {feedback && (
+        <div style={{
+          background: feedback.type === "success" ? "rgba(82, 183, 136, 0.15)" : "rgba(239, 68, 68, 0.15)",
+          border: `1px solid ${feedback.type === "success" ? "rgba(82, 183, 136, 0.4)" : "rgba(239, 68, 68, 0.4)"}`,
+          color: feedback.type === "success" ? "#52b788" : "#ef4444",
+          padding: "10px 16px",
+          borderRadius: "var(--radius-md)",
+          marginBottom: "var(--space-md)",
+          display: "flex",
+          alignItems: "center",
+          gap: "8px",
+          fontSize: "0.88rem"
+        }}>
+          <CheckCircle size={16} />
+          <span>{feedback.text}</span>
+        </div>
+      )}
+
+      {/* Toolbar */}
+      <div className="panel-toolbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem", marginBottom: "var(--space-md)" }}>
+        <div className="search-wrap" style={{ flex: 1, minWidth: 240, maxWidth: 380 }}>
+          <Search size={16} />
+          <input
+            className="form-input search-input"
+            placeholder="Cari nama, role, membership, telepon..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <button className="btn btn-secondary btn-sm" onClick={() => exportToCSV(`Pengguna_${new Date().toISOString().slice(0,10)}.csv`, users)}>
+            <Download size={14} /> Export CSV
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={loadUsers} title="Refresh Pengguna">
+            <RefreshCw size={14} className={loading ? "spin-icon" : ""} />
+          </button>
+        </div>
       </div>
-      {loading ? <div className="admin-loading"><RefreshCw size={20} className="spin-icon" /></div> : (
-        <table className="admin-table">
-          <thead><tr><th>Nama</th><th>Role</th><th>Membership</th><th>Poin</th><th>Total Belanja</th><th>Bergabung</th></tr></thead>
-          <tbody>
-            {filtered.map(u => (
-              <tr key={u.id}>
-                <td><div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}><div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dark))", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: 700, color: "#0d1117" }}>{(u.name || "U")[0].toUpperCase()}</div><div><p style={{ color: "var(--clr-text)", fontWeight: 500, fontSize: "0.9rem" }}>{u.name}</p><p style={{ fontSize: "0.75rem", color: "var(--clr-text-dim)" }}>{u.phone || "\u2014"}</p></div></div></td>
-                <td><span className={`status-badge ${u.role === "admin" ? "status-confirmed" : "status-pending"}`}>{u.role}</span></td>
-                <td><span className="product-tag">{u.membership}</span></td>
-                <td style={{ color: "var(--clr-primary)", fontWeight: 600 }}>{(u.points || 0).toLocaleString()}</td>
-                <td>{formatPrice(u.total_spent || 0)}</td>
-                <td style={{ fontSize: "0.78rem", color: "var(--clr-text-muted)" }}>{new Date(u.created_at).toLocaleDateString("id-ID")}</td>
+
+      {loading ? (
+        <div className="admin-loading"><RefreshCw size={20} className="spin-icon" /></div>
+      ) : (
+        <div className="glass-card" style={{ overflowX: "auto", borderRadius: "var(--radius-lg)" }}>
+          <table className="admin-table">
+            <thead>
+              <tr>
+                <th>Nama & Telepon</th>
+                <th>Role</th>
+                <th>Membership</th>
+                <th>Poin</th>
+                <th>Total Belanja</th>
+                <th>Bergabung</th>
+                <th style={{ textAlign: "center" }}>Aksi</th>
               </tr>
-            ))}
-            {filtered.length === 0 && <tr><td colSpan={6} style={{ textAlign: "center", color: "var(--clr-text-muted)" }}>Tidak ada pengguna</td></tr>}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.map(u => {
+                const isCurrent = u.id === currentAdmin?.id;
+                const isUpdating = updatingId === u.id;
+                const memColor = TIER_COLORS[u.membership] || "#cd7f32";
+
+                return (
+                  <tr key={u.id} style={{ opacity: isUpdating ? 0.6 : 1, transition: "opacity 0.2s" }}>
+                    {/* User Info */}
+                    <td>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
+                        <div style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: "50%",
+                          background: u.role === "admin"
+                            ? "linear-gradient(135deg, #10b981, #059669)"
+                            : "linear-gradient(135deg, var(--clr-primary), var(--clr-primary-dark))",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: "0.8rem",
+                          fontWeight: 700,
+                          color: "#0d1117",
+                          flexShrink: 0
+                        }}>
+                          {(u.name || "U")[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                            <span style={{ color: "var(--clr-text)", fontWeight: 600, fontSize: "0.9rem" }}>{u.name || "User"}</span>
+                            {isCurrent && (
+                              <span style={{
+                                fontSize: "0.68rem",
+                                background: "rgba(200, 150, 62, 0.2)",
+                                color: "var(--clr-primary)",
+                                padding: "1px 6px",
+                                borderRadius: "4px",
+                                fontWeight: 600
+                              }}>
+                                Anda
+                              </span>
+                            )}
+                          </div>
+                          <p style={{ fontSize: "0.75rem", color: "var(--clr-text-dim)", margin: "2px 0 0 0" }}>{u.phone || "—"}</p>
+                        </div>
+                      </div>
+                    </td>
+
+                    {/* Interactive Role Selector */}
+                    <td>
+                      <select
+                        className="user-role-select"
+                        value={u.role || "user"}
+                        onChange={e => handleRoleChange(u, e.target.value)}
+                        disabled={isUpdating}
+                        style={{
+                          background: u.role === "admin" ? "rgba(82, 183, 136, 0.15)" : "rgba(245, 158, 11, 0.15)",
+                          color: u.role === "admin" ? "#52b788" : "#f59e0b",
+                          border: `1px solid ${u.role === "admin" ? "rgba(82, 183, 136, 0.4)" : "rgba(245, 158, 11, 0.4)"}`,
+                        }}
+                        title={isCurrent ? "Akun Anda sendiri" : "Klik untuk mengubah role"}
+                      >
+                        <option value="user">User 👤</option>
+                        <option value="admin">Admin 🛡️</option>
+                      </select>
+                    </td>
+
+                    {/* Interactive Membership Selector */}
+                    <td>
+                      <select
+                        className="user-membership-select"
+                        value={u.membership || "Bronze"}
+                        onChange={e => handleMembershipChange(u, e.target.value)}
+                        disabled={isUpdating}
+                        style={{
+                          background: `color-mix(in srgb, ${memColor} 15%, transparent)`,
+                          color: memColor,
+                          border: `1px solid color-mix(in srgb, ${memColor} 45%, transparent)`,
+                        }}
+                        title="Klik untuk mengubah tier membership"
+                      >
+                        {MEMBERSHIP_TIERS.map(tier => (
+                          <option key={tier} value={tier}>
+                            {TIER_ICONS[tier]} {tier}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+
+                    {/* Points */}
+                    <td style={{ color: "var(--clr-primary)", fontWeight: 600 }}>
+                      {(u.points || 0).toLocaleString("id-ID")}
+                    </td>
+
+                    {/* Total Spent */}
+                    <td>{formatPrice(u.total_spent || 0)}</td>
+
+                    {/* Date Joined */}
+                    <td style={{ fontSize: "0.78rem", color: "var(--clr-text-muted)" }}>
+                      {u.created_at ? new Date(u.created_at).toLocaleDateString("id-ID") : "—"}
+                    </td>
+
+                    {/* Actions Column */}
+                    <td style={{ textAlign: "center" }}>
+                      <div className="user-action-btns" style={{ justifyContent: "center" }}>
+                        <button
+                          className="btn btn-ghost btn-sm btn-icon"
+                          onClick={() => openEditModal(u)}
+                          title="Edit Pengguna"
+                          disabled={isUpdating}
+                          style={{ color: "var(--clr-primary)" }}
+                        >
+                          <Edit2 size={15} />
+                        </button>
+                        <button
+                          className="btn btn-ghost btn-sm btn-icon"
+                          onClick={() => handleDeleteUser(u)}
+                          disabled={isCurrent || isUpdating}
+                          title={isCurrent ? "Tidak dapat menghapus akun Anda sendiri" : "Hapus Pengguna"}
+                          style={{
+                            color: isCurrent ? "var(--clr-text-dim)" : "#ef4444",
+                            opacity: isCurrent ? 0.35 : 1,
+                            cursor: isCurrent ? "not-allowed" : "pointer"
+                          }}
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {filtered.length === 0 && (
+                <tr>
+                  <td colSpan={7} style={{ textAlign: "center", color: "var(--clr-text-muted)", padding: "var(--space-xl)" }}>
+                    Tidak ada pengguna ditemukan
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Modal Edit Detail Pengguna */}
+      {editModalUser && (
+        <div className="admin-modal-overlay" onClick={() => setEditModalUser(null)}>
+          <div className="admin-modal glass-card" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <div className="admin-modal__header">
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <Edit2 size={18} style={{ color: "var(--clr-primary)" }} />
+                <h4 style={{ margin: 0 }}>Edit Pengguna</h4>
+              </div>
+              <button className="btn btn-ghost btn-sm btn-icon" onClick={() => setEditModalUser(null)}>
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="admin-modal__body" style={{ display: "flex", flexDirection: "column", gap: "1rem", padding: "var(--space-lg) var(--space-xl)" }}>
+              {/* Nama & Telepon */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Nama Lengkap</label>
+                  <input
+                    className="form-input"
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    placeholder="Nama Pengguna"
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">No. Telepon</label>
+                  <input
+                    className="form-input"
+                    value={editForm.phone}
+                    onChange={e => setEditForm(f => ({ ...f, phone: e.target.value }))}
+                    placeholder="08xxxxxxxxxx"
+                  />
+                </div>
+              </div>
+
+              {/* Role & Membership */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Role Akses</label>
+                  <select
+                    className="form-input"
+                    value={editForm.role}
+                    onChange={e => setEditForm(f => ({ ...f, role: e.target.value }))}
+                  >
+                    <option value="user">User (Pelanggan Biasa)</option>
+                    <option value="admin">Admin (Pengelola)</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Tier Membership</label>
+                  <select
+                    className="form-input"
+                    value={editForm.membership}
+                    onChange={e => setEditForm(f => ({ ...f, membership: e.target.value }))}
+                  >
+                    {MEMBERSHIP_TIERS.map(tier => (
+                      <option key={tier} value={tier}>
+                        {TIER_ICONS[tier]} {tier}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* Poin & Total Belanja */}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Poin Member</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    value={editForm.points}
+                    onChange={e => setEditForm(f => ({ ...f, points: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label">Total Belanja (IDR)</label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    value={editForm.total_spent}
+                    onChange={e => setEditForm(f => ({ ...f, total_spent: e.target.value }))}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="admin-modal__footer" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                style={{ color: "#ef4444" }}
+                onClick={() => handleDeleteUser(editModalUser)}
+                disabled={editModalUser.id === currentAdmin?.id || savingUser}
+                title={editModalUser.id === currentAdmin?.id ? "Tidak dapat menghapus akun Anda sendiri" : "Hapus Pengguna"}
+              >
+                <Trash2 size={14} /> Hapus Akun
+              </button>
+
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setEditModalUser(null)}>
+                  Batal
+                </button>
+                <button type="button" className="btn btn-primary btn-sm" onClick={saveEditModal} disabled={savingUser}>
+                  {savingUser ? <RefreshCw size={14} className="spin-icon" /> : <Save size={14} />} Simpan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
